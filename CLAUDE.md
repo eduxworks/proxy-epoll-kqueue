@@ -292,9 +292,14 @@ Reparto fijo:
 | `test_backend_pool` | 5 | round-robin 300/3 = 100 ±1; un backend DOWN ⇒ 150/150; todos DOWN ⇒ NULL; `weighted` respeta 3:1; `least_conn` elige el de menos conexiones |
 | `test_config` | 4 | fixture válido completo; backend inexistente; `listen` duplicado; wildcard mal formado (cada caso comprueba además que el mensaje cita la ruta TOML) |
 
-**Estado actual**: existe `test_io_event` (5 casos), que no está en la tabla
-porque el README no lo enumera; verifica la API común en las tres plataformas y
-es la prueba viva de E3. Cada suite de la tabla entra con su módulo.
+**Estado actual**: `test_config` (4) y `test_router` (6) ya están completas según
+la tabla. Se les suma `test_io_event` (5 casos), que no entra en la cuenta de 22
+porque el README lista `io_event` como módulo pero no como suite; verifica la API
+común en las tres plataformas y es la prueba viva de E3.
+
+**Sin cubrir todavía**: `router_slot` (el swap atómico con refcount). Su test
+llega con el reload de E13, que es cuando se puede comprobar de punta a punta
+que las conexiones en vuelo terminan con la config vieja.
 
 Si un cambio necesita un test nuevo, **se sustituye o se amplía manteniendo el
 recuento declarado en el README actualizado en el mismo commit**. Todo bug

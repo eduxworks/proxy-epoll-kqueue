@@ -5,13 +5,19 @@ if not cmocka_dep.found()
   subdir_done()
 endif
 
-# E19: el README declara 22 tests en 4 suites (http_parser, router,
-# backend_pool, config). Cada suite entra con su módulo; por ahora existe el
-# bucle de eventos, así que solo hay esta.
-test_io_event = executable('test_io_event',
-  files('test_io_event.c'),
-  include_directories : proxy_inc,
-  link_with : libproxycore,
-  dependencies : [cmocka_dep])
+# E19: el README declara 22 casos cmocka en 4 suites (http_parser, router,
+# backend_pool, config). Cada suite entra con su módulo. test_io_event no está
+# en esa cuenta: cubre la abstracción de E/S, que el README lista como módulo
+# pero no como suite.
+suites = [
+  ['io_event', 'test_io_event.c'],
+  ['config',   'test_config.c'],
+  ['router',   'test_router.c'],
+]
 
-test('io_event', test_io_event, suite : 'io_event')
+foreach s : suites
+  exe = executable('test_' + s[0],
+    files(s[1]),
+    dependencies : [proxycore_dep, cmocka_dep])
+  test(s[0], exe, suite : s[0])
+endforeach

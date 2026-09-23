@@ -5,6 +5,8 @@ build-*/
 # Subproyectos descargados: se versiona el .wrap, no el código de terceros
 subprojects/*
 !subprojects/*.wrap
+!subprojects/packagefiles/
+!subprojects/packagefiles/**
 
 # Herramientas
 compile_commands.json

@@ -1,0 +1,75 @@
+# proxy.toml — configuración de ejemplo.
+#
+# Puertos 80/443 como en el README. Las fixtures de test usan puertos altos
+# (8080/8081) para correr sin privilegios.
+
+[global]
+workers      = 0                        # 0 = una por CPU (SO_REUSEPORT)
+max_conns    = 65536
+stats_socket = "/tmp/proxy-stats.sock"
+log_file     = "/var/log/proxy.log"
+log_level    = "info"                   # debug | info | warn | error
+
+[[frontend]]
+name   = "public"
+listen = "0.0.0.0:80"
+
+  [[frontend.route]]
+  host    = "a.test"                    # dominio exacto
+  backend = "pool_a"
+
+  [[frontend.route]]
+  host    = "*.b.test"                  # wildcard
+  backend = "pool_b"
+
+  [[frontend.route]]
+  host    = "default"                   # si falta, lo no enrutado da 502
+  backend = "pool_a"
+
+[[frontend]]
+name   = "internal"
+listen = "127.0.0.1:8081"
+
+  [[frontend.route]]
+  host    = "admin.test"
+  backend = "pool_admin"
+
+[[backend]]
+name    = "pool_a"
+balance = "round_robin"                 # round_robin | weighted | least_conn
+servers = [
+  { addr = "127.0.0.1:9001", weight = 1 },
+  { addr = "127.0.0.1:9002", weight = 1 },
+  { addr = "127.0.0.1:9003", weight = 1 },
+]
+
+  [backend.health]
+  type     = "tcp"
+  interval = 2000                       # ms
+  timeout  = 500                        # ms; debe ser < interval
+  rise     = 2                          # sondas OK para volver a UP
+  fall     = 3                          # sondas KO para marcar DOWN
+
+[[backend]]
+name    = "pool_b"
+balance = "least_conn"
+servers = [
+  { addr = "127.0.0.1:9011", weight = 1 },
+  { addr = "127.0.0.1:9012", weight = 1 },
+]
+
+[[backend]]
+name    = "pool_admin"
+balance = "weighted"
+servers = [
+  { addr = "127.0.0.1:9021", weight = 3 },
+  { addr = "127.0.0.1:9022", weight = 1 },
+]
+
+  [backend.health]
+  type     = "http"
+  path     = "/healthz"
+  interval = 3000
+  timeout  = 800
+  rise     = 2
+  fall     = 3

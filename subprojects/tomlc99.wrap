@@ -1,0 +1,10 @@
+[wrap-git]
+url = https://github.com/cktan/tomlc99.git
+# Revisión fija, no "master": el build debe dar lo mismo hoy y el día de la
+# entrega. Sin depth, porque un clon superficial de un sha concreto no está
+# garantizado en todos los servidores.
+revision = 29076dfd095bbbbd50a3c1b2760d29f4b83e74ac
+patch_directory = tomlc99
+
+[provide]
+tomlc99 = tomlc99_dep
