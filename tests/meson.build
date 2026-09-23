@@ -5,6 +5,12 @@ if not cmocka_dep.found()
   subdir_done()
 endif
 
+# cmocka 2.x usa "##__VA_ARGS__" en sus macros, una extensión GNU que clang
+# rechaza con -Wpedantic -Werror (se ve en macOS, no en Ubuntu, que aún trae
+# cmocka 1.1.7). Se incluye como cabecera de sistema para que sus avisos no
+# tumben el build: nuestro código sigue compilando con las mismas exigencias.
+cmocka_dep = cmocka_dep.as_system('system')
+
 # E19: el README declara 22 casos cmocka en 4 suites (http_parser, router,
 # backend_pool, config). Cada suite entra con su módulo. test_io_event no está
 # en esa cuenta: cubre la abstracción de E/S, que el README lista como módulo
