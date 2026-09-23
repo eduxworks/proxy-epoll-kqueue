@@ -340,6 +340,32 @@ Tres escenarios de `wrk`. Referencia del README (macOS/ARM64, build release):
 el suelo a no empeorar. El script sube `ulimit -n 65535`, verifica que corre
 contra el build release y avisa si el backend de prueba es el cuello de botella.
 
+### 7.1 Cómo se reportan las cifras — referencia vs. propias
+
+Las cifras de arriba son **de referencia**: las publica el README, medidas en
+macOS/ARM64 en hardware que no tenemos. Este proyecto se mide en Linux/VPS, así
+que **nunca se presentan como propias**. El informe de resultados lleva siempre
+las dos tablas, separadas y etiquetadas:
+
+```markdown
+### Referencia (README del enunciado) — macOS/ARM64
+| Configuración | Req/s | Latencia media | Errores |
+
+### Medición propia — <SO y versión> · <CPU> · <N núcleos> · <RAM>
+| Configuración | Req/s | Latencia media | Errores |
+```
+
+Cada medición propia declara **SO y versión, modelo de CPU, número de núcleos
+(dedicados o compartidos) y RAM**, más el `buildtype` y si `wrk`, el proxy y los
+backends compartían máquina. Sin esos datos un número de req/s no significa nada.
+
+Si el hardware disponible no llega al umbral, **se publica la cifra real igualmente**
+junto al contexto que la explica: la medición es del entorno, no del código. Una
+medida baja y bien documentada es un resultado; una cifra inflada o heredada de
+otro hardware es un error de honestidad. El equipo local (§`requerimiento.md` §5.4:
+Ryzen 5 3400G, 4 núcleos compartidos con Windows) se etiqueta explícitamente como
+**orientativo**, nunca como medición de entrega.
+
 ---
 
 ## 8. Estructura del repositorio

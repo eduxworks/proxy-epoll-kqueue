@@ -491,17 +491,26 @@ jobs:
         with: { name: meson-logs-macos, path: build/meson-logs/ }
 ```
 
-**Puesta en marcha** — ya tienes `gh` 2.92 autenticado como `eduxworks` y con el
-scope `workflow`, así que no hace falta configurar nada más:
+**Dos remotos: entrega y CI** — ya configurado. La entrega del curso va al GitLab
+de la academia; GitHub existe **solo** para los runners de macOS:
+
+| Remoto | URL | Papel |
+|---|---|---|
+| `origin` (upstream) | `gitlab.codecrypto.academy/eduxworks/1.5.10-proxy-epoll-kqueue` | **Entrega evaluada** |
+| `github` | `github.com/eduxworks/proxy-epoll-kqueue` (público) | Espejo para CI macOS |
+
+`origin` tiene **dos `pushurl`**, así que un solo `git push` actualiza los dos y es
+imposible que el CI quede mirando código viejo:
 
 ```bash
-cd ~/proyectos/proxy
-gh repo create proxy-epoll-kqueue --public --source=. --remote=origin --push
-git add .github/workflows/ci.yml && git commit -m "ci: build y tests en Linux y macOS"
-git push
-gh run watch          # sigue la ejecución en vivo
-gh run view --log-failed   # si algo falla
+git remote -v | grep push      # origin -> gitlab  +  origin -> github
+git push                       # sube a los dos
+gh run watch                   # sigue la ejecución del CI
+gh run view --log-failed       # si algo falla
 ```
+
+Si alguna vez necesitas subir solo a uno: `git push github main` o
+`git push https://gitlab.codecrypto.academy/... main`.
 
 **Coste en minutos**: con el repositorio **público**, los runners son gratis e
 ilimitados para este uso. Si lo prefieres **privado**, macOS consume minutos con
