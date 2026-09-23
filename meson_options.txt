@@ -1,0 +1,7 @@
+option('with_tests',
+  type : 'boolean',
+  value : true,
+  description : 'Compilar la batería de tests cmocka')
+
+# Los sanitizadores usan la opción propia de Meson, no una nuestra:
+#   meson setup build-asan -Db_sanitize=address,undefined

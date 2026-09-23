@@ -1,0 +1,93 @@
+name: ci
+
+# E3: la portabilidad se demuestra compilando y pasando los tests en las dos
+# plataformas que exige el README, no afirmándola. El job de macOS es el que
+# cubre la rama kqueue; en local se itera sobre FreeBSD (ver requerimiento.md §7).
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Linux · gcc · epoll
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build pkg-config libcmocka-dev
+
+      - name: Configurar
+        run: meson setup build
+
+      - name: Compilar
+        run: meson compile -C build
+
+      - name: Tests
+        run: meson test -C build --print-errorlogs
+
+      - name: Backend compilado
+        run: ./build/src/proxy -v
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: meson-logs-linux
+          path: build/meson-logs/
+
+  macos:
+    name: macOS ARM64 · clang · kqueue
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencias
+        run: brew install meson ninja pkg-config cmocka
+
+      - name: Configurar
+        run: meson setup build
+
+      - name: Compilar
+        run: meson compile -C build
+
+      - name: Tests
+        run: meson test -C build --print-errorlogs
+
+      - name: Backend compilado
+        run: ./build/src/proxy -v
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: meson-logs-macos
+          path: build/meson-logs/
+
+  sanitizers:
+    name: Linux · ASan + UBSan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build pkg-config libcmocka-dev
+
+      - name: Configurar con sanitizadores
+        run: meson setup build-asan -Db_sanitize=address,undefined
+
+      - name: Compilar
+        run: meson compile -C build-asan
+
+      - name: Tests
+        run: meson test -C build-asan --print-errorlogs
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: meson-logs-asan
+          path: build-asan/meson-logs/

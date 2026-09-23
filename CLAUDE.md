@@ -37,7 +37,7 @@ contratos** y **cómo se valida**.
 | E16 | **Arena `mmap`** de slots de **16 KB** con freelist | `buffer_pool` | Sin `malloc` en el camino caliente; slots devueltos en toda ruta de error |
 | E17 | **Stats JSON** sobre socket UNIX (uptime, contadores, backends) | `stats` | Snapshot válido según `jq`, servido sin bloquear el loop |
 | E18 | Build con **Meson** | `meson.build` | `meson setup build && meson compile -C build` |
-| E19 | **22 tests cmocka en 4 suites** | `tests/` | `meson test -C build` reporta 22/22 OK (reparto en §6.1) |
+| E19 | **22 tests cmocka en 4 suites** | `tests/` | 22 casos en 4 binarios; `meson test -C build` reporta 4/4 targets en verde (reparto en §6.1) |
 | E20 | Benchmark con **wrk** | `bench/bench_proxy.sh` | Los tres escenarios de §7 |
 
 ### 1.2 Requisitos del enunciado (`prompt.md`) — subconjunto cubierto
@@ -280,7 +280,10 @@ conexión reseteada en las métricas de `wrk`.
 
 ### 6.1 Unitarios — 22 tests, 4 suites (E19)
 
-`meson test -C build` debe reportar **22/22**. Reparto fijo:
+El README declara **22 casos cmocka repartidos en 4 suites**. Ojo al contar:
+`meson test` reporta **targets**, uno por suite, así que su resumen dirá `4/4`;
+los 22 casos se cuentan dentro de cada binario (`--print-errorlogs` los lista).
+Reparto fijo:
 
 | Suite | N | Casos |
 |-------|---|-------|
@@ -288,6 +291,10 @@ conexión reseteada en las métricas de `wrk`.
 | `test_router` | 6 | exacto gana a wildcard; wildcard más específico gana; `default`; sin ruta ⇒ NULL; normalización (mayúsculas + puerto); colisión de hash djb2 |
 | `test_backend_pool` | 5 | round-robin 300/3 = 100 ±1; un backend DOWN ⇒ 150/150; todos DOWN ⇒ NULL; `weighted` respeta 3:1; `least_conn` elige el de menos conexiones |
 | `test_config` | 4 | fixture válido completo; backend inexistente; `listen` duplicado; wildcard mal formado (cada caso comprueba además que el mensaje cita la ruta TOML) |
+
+**Estado actual**: existe `test_io_event` (5 casos), que no está en la tabla
+porque el README no lo enumera; verifica la API común en las tres plataformas y
+es la prueba viva de E3. Cada suite de la tabla entra con su módulo.
 
 Si un cambio necesita un test nuevo, **se sustituye o se amplía manteniendo el
 recuento declarado en el README actualizado en el mismo commit**. Todo bug
@@ -373,14 +380,17 @@ Ryzen 5 3400G, 4 núcleos compartidos con Windows) se etiqueta explícitamente c
 ```
 .
 ├── meson.build              # proyecto raíz, detección de plataforma
-├── meson_options.txt        # -Dwith_tests, -Dsanitize
+├── meson_options.txt        # -Dwith_tests (los sanitizadores usan -Db_sanitize)
 ├── CLAUDE.md                # este documento
 ├── README.md                # documento de evaluación
 ├── proxy.toml               # config de ejemplo
+├── .github/workflows/ci.yml # Linux + macOS ARM64 + ASan/UBSan en cada push
 ├── src/
 │   ├── meson.build
 │   ├── main.c               # CLI, fork de workers, señales, self-pipe
-│   ├── io_event.h
+│   ├── io_event.h           # API común (E3)
+│   ├── io_event_internal.h  # tabla de observadores, sin plataforma
+│   ├── io_event_common.c    # parte neutral: tabla + O_NONBLOCK
 │   ├── io_event_epoll.c     # solo Linux
 │   ├── io_event_kqueue.c    # solo macOS/BSD
 │   ├── listener.[ch]        ├── connection.[ch]
@@ -405,7 +415,7 @@ El binario queda en **`build/src/proxy`**, como indica el README.
   `darwin`/`freebsd` → `io_event_kqueue.c`; otro ⇒ `error('plataforma no soportada')`.
 - `tomlc99` y `cmocka` vía `.wrap` + `dependency(..., fallback:)`, para que el
   build funcione sin red si ya están en el sistema.
-- `-Dsanitize=address,undefined` para depuración. Release: `-O2 -flto`; nunca
+- `-Db_sanitize=address,undefined` (opción propia de Meson) para depuración. Release: `-O2 -flto`; nunca
   `-Ofast` ni `-march=native`.
 
 ---
@@ -446,7 +456,7 @@ kill -HUP <pid>
 ./bench/bench_proxy.sh
 
 # --- desarrollo ---
-meson setup build-asan -Dsanitize=address,undefined && meson compile -C build-asan
+meson setup build-asan -Db_sanitize=address,undefined && meson compile -C build-asan
 meson setup build-rel --buildtype=release && meson compile -C build-rel   # para el benchmark
 meson test -C build --print-errorlogs
 sudo ./tests/e2e/run_e2e.sh          # con /etc/hosts

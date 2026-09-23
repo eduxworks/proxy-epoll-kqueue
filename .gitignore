@@ -1,0 +1,19 @@
+# Directorios de build de Meson
+build/
+build-*/
+
+# Subproyectos descargados: se versiona el .wrap, no el código de terceros
+subprojects/*
+!subprojects/*.wrap
+
+# Herramientas
+compile_commands.json
+.cache/
+*.o
+*.a
+core
+vgcore.*
+
+# Salidas de los tests y del benchmark
+tests/e2e/tmp/
+bench/results/
