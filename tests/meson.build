@@ -20,7 +20,9 @@ suites = [
   ['listener',    'test_listener.c'],
   ['config',      'test_config.c'],
   ['router',      'test_router.c'],
-  ['http_parser', 'test_http_parser.c'],
+  ['http_parser',  'test_http_parser.c'],
+  ['backend_pool', 'test_backend_pool.c'],
+  ['buffer_pool',  'test_buffer_pool.c'],
 ]
 
 foreach s : suites

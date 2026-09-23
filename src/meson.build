@@ -12,6 +12,8 @@ core_sources = files(
   'router.c',
   'http_parser.c',
   'listener.c',
+  'backend_pool.c',
+  'buffer_pool.c',
 ) + io_event_impl
 
 libproxycore = static_library('proxycore',

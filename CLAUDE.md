@@ -298,12 +298,15 @@ Reparto fijo:
 | `test_backend_pool` | 5 | round-robin 300/3 = 100 ±1; un backend DOWN ⇒ 150/150; todos DOWN ⇒ NULL; `weighted` respeta 3:1; `least_conn` elige el de menos conexiones |
 | `test_config` | 4 | fixture válido completo; backend inexistente; `listen` duplicado; wildcard mal formado (cada caso comprueba además que el mensaje cita la ruta TOML) |
 
-**Estado actual**: `test_config` (4), `test_router` (6) y `test_http_parser` (7)
-ya están completas según la tabla; falta `test_backend_pool` (5) para llegar a 22.
-Se les suman dos suites fuera de esa cuenta, porque el README lista `io_event` y
-`listener` como módulos pero no como suites: `test_io_event` (5) y
-`test_listener` (3), que son las que comprueban en las tres plataformas lo que
-más difiere entre ellas — el bucle de eventos y `SO_REUSEPORT`/`accept`.
+**Estado actual**: las **4 suites de la tabla están completas — 22 casos**
+(`config` 4, `router` 6, `http_parser` 7, `backend_pool` 5), que es lo que
+declara el README.
+
+Hay **3 suites más fuera de esa cuenta**, para módulos que el README lista pero
+no como suites: `io_event` (5), `listener` (3) y `buffer_pool` (4). Son las que
+comprueban en las tres plataformas lo que más difiere entre ellas —el bucle de
+eventos, `SO_REUSEPORT`/`accept`— y la aritmética de la arena. Total: 7 binarios,
+34 casos. `meson test` reporta 7 targets.
 
 **Sin cubrir todavía**: `router_slot` (el swap atómico con refcount). Su test
 llega con el reload de E13, que es cuando se puede comprobar de punta a punta
