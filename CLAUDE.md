@@ -335,6 +335,17 @@ Implementa los tres pasos del enunciado:
 
 - `curl http://a.test:8080/` ⇒ 200, cuerpo de un servidor del pool — E7.
 - 300 peticiones a `a.test` ⇒ los 3 identificadores, 100 ±1 cada uno — E9.
+  **Con `workers = 1`**: cada worker lleva su propio turno de round-robin, porque
+  no comparten estado (que es justo lo que los hace rápidos). Con varios el
+  reparto es uniforme en conjunto pero no exacto, así que la afirmación «100 ±1»
+  solo tiene sentido con un turno único. El caso multiproceso se comprueba
+  aparte, exigiendo 0 errores y que todos los backends vivos reciban trabajo.
+- Toda petición del script pide **código y cuerpo en una sola llamada** a `curl`.
+  Hacer dos y registrar una muestrea siempre la misma fase del turno, y el
+  reparto parece mucho más sesgado de lo que es.
+- Los dominios que **deben** fallar (`desconocido.test`) se dan de alta igual:
+  un Host que no resuelve da `000` en curl, no el 502 del proxy, y eso no
+  probaría nada sobre el enrutado.
 - `curl http://x.b.test:8080/` ⇒ pool distinto al de `a.test` — E8.
 - `admin.test:8081` responde; `admin.test:8080` **no** llega a `pool_admin` — E6.
 - `Host` sin ruta y sin `default` ⇒ **502** — E8.
@@ -342,7 +353,8 @@ Implementa los tres pasos del enunciado:
 - Nuevo TOML + `kill -HUP` ⇒ nuevo enrutado aplicado, 0 errores de `curl` — E13.
 - El upstream ve `X-Forwarded-For` con la IP del cliente — E14.
 - `socat - UNIX-CONNECT:$stats_socket` ⇒ JSON válido con uptime, contadores y
-  estado de backends — E17.
+  estado de backends — E17. **Pendiente**: el módulo `stats` aún no existe; el
+  script la marca como tal en vez de omitirla, para que el hueco se vea.
 
 Sale con 0 solo si **todas** pasan; imprime un resumen por aserción; es
 idempotente (limpia procesos, temporales y `/etc/hosts` en `trap EXIT`).

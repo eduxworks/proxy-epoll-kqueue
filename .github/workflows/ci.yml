@@ -33,6 +33,12 @@ jobs:
       - name: Backend compilado
         run: ./build/src/proxy -v
 
+      - name: E2E sin /etc/hosts (curl --resolve)
+        run: ./tests/e2e/run_e2e.sh --no-hosts
+
+      - name: E2E con /etc/hosts
+        run: sudo ./tests/e2e/run_e2e.sh
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -59,6 +65,12 @@ jobs:
 
       - name: Backend compilado
         run: ./build/src/proxy -v
+
+      - name: E2E sin /etc/hosts (curl --resolve)
+        run: ./tests/e2e/run_e2e.sh --no-hosts
+
+      - name: E2E con /etc/hosts
+        run: sudo ./tests/e2e/run_e2e.sh
 
       - uses: actions/upload-artifact@v4
         if: failure()

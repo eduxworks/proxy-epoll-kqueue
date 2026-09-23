@@ -111,8 +111,17 @@ int main(int argc, char **argv)
     char id[64];
     snprintf(id, sizeof id, "%s", argc > 2 ? argv[2] : argv[1]);
 
-    signal(SIGTERM, on_term);
-    signal(SIGINT, on_term);
+    /* sigaction con sa_flags = 0, no signal(). En Linux signal() instala el
+     * handler con SA_RESTART, así que accept() se reanudaría sola tras la
+     * señal: el proceso seguiría sirviendo y "matar el backend" en el e2e no
+     * mataría nada. Sin SA_RESTART, accept() devuelve EINTR y el bucle sale. */
+    struct sigaction sa;
+    memset(&sa, 0, sizeof sa);
+    sa.sa_handler = on_term;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGTERM, &sa, NULL);
+    sigaction(SIGINT, &sa, NULL);
+
     signal(SIGPIPE, SIG_IGN);
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
