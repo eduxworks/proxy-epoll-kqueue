@@ -14,7 +14,7 @@ jobs:
     name: Linux · gcc · epoll
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Dependencias
         run: |
@@ -43,7 +43,7 @@ jobs:
     name: macOS ARM64 · clang · kqueue
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Dependencias
         run: brew install meson ninja pkg-config cmocka
@@ -70,7 +70,7 @@ jobs:
     name: Linux · ASan + UBSan
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Dependencias
         run: |
