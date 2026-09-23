@@ -7,8 +7,11 @@ tomlc99_dep = dependency('tomlc99', fallback : ['tomlc99', 'tomlc99_dep'])
 # exactamente el mismo código que el ejecutable.
 core_sources = files(
   'io_event_common.c',
+  'net_compat.c',
   'config.c',
   'router.c',
+  'http_parser.c',
+  'listener.c',
 ) + io_event_impl
 
 libproxycore = static_library('proxycore',

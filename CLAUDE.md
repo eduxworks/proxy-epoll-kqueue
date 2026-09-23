@@ -98,7 +98,9 @@ Client ──► [Frontend socket :80/:443] ──► parse HTTP Host header ─
    en el loop — el README lo llama «el corazón didáctico del proyecto».
 2. **Portabilidad por abstracción.** `io_event.h` define la API;
    `io_event_epoll.c` y `io_event_kqueue.c` la implementan; Meson detecta la
-   plataforma. Ningún otro fichero sabe en qué SO corre.
+   plataforma. Las diferencias de *sockets* (§2.2) no caben ahí, porque no son
+   del bucle de eventos: viven en **`net_compat.c`**. Esos tres ficheros son los
+   únicos con `#ifdef` de plataforma; ningún otro sabe en qué SO corre.
 3. **Reload sin downtime.** La config publicada es inmutable: recargar es
    construir un objeto nuevo y sustituir el puntero (§5), nunca mutar el que
    está en uso.
@@ -141,6 +143,10 @@ reparte las conexiones. Si E5 depende de ese reparto, macOS necesita un plan B
 (un aceptador único que distribuya descriptores, o varios `kqueue` sobre el mismo
 socket de escucha). La decisión se documenta en el README, porque afecta a una
 afirmación suya.
+
+Las tres las resuelve `net_compat.[ch]`, que además expone
+`net_reuseport_balances()` para que el arranque de los workers pueda **consultar
+en tiempo de ejecución** si el kernel reparte, en vez de suponerlo.
 
 El compilador base de FreeBSD y macOS es **clang**, no gcc: el código debe
 compilar limpio con ambos (E1).
@@ -292,10 +298,12 @@ Reparto fijo:
 | `test_backend_pool` | 5 | round-robin 300/3 = 100 ±1; un backend DOWN ⇒ 150/150; todos DOWN ⇒ NULL; `weighted` respeta 3:1; `least_conn` elige el de menos conexiones |
 | `test_config` | 4 | fixture válido completo; backend inexistente; `listen` duplicado; wildcard mal formado (cada caso comprueba además que el mensaje cita la ruta TOML) |
 
-**Estado actual**: `test_config` (4) y `test_router` (6) ya están completas según
-la tabla. Se les suma `test_io_event` (5 casos), que no entra en la cuenta de 22
-porque el README lista `io_event` como módulo pero no como suite; verifica la API
-común en las tres plataformas y es la prueba viva de E3.
+**Estado actual**: `test_config` (4), `test_router` (6) y `test_http_parser` (7)
+ya están completas según la tabla; falta `test_backend_pool` (5) para llegar a 22.
+Se les suman dos suites fuera de esa cuenta, porque el README lista `io_event` y
+`listener` como módulos pero no como suites: `test_io_event` (5) y
+`test_listener` (3), que son las que comprueban en las tres plataformas lo que
+más difiere entre ellas — el bucle de eventos y `SO_REUSEPORT`/`accept`.
 
 **Sin cubrir todavía**: `router_slot` (el swap atómico con refcount). Su test
 llega con el reload de E13, que es cuando se puede comprobar de punta a punta
@@ -398,6 +406,7 @@ Ryzen 5 3400G, 4 núcleos compartidos con Windows) se etiqueta explícitamente c
 │   ├── io_event_common.c    # parte neutral: tabla + O_NONBLOCK
 │   ├── io_event_epoll.c     # solo Linux
 │   ├── io_event_kqueue.c    # solo macOS/BSD
+│   ├── net_compat.[ch]      # SO_REUSEPORT(_LB) y accept4: §2.2
 │   ├── listener.[ch]        ├── connection.[ch]
 │   ├── http_parser.[ch]     ├── router.[ch]
 │   ├── backend_pool.[ch]    ├── health.[ch]

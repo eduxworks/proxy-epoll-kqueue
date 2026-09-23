@@ -16,9 +16,11 @@ cmocka_dep = cmocka_dep.as_system('system')
 # en esa cuenta: cubre la abstracción de E/S, que el README lista como módulo
 # pero no como suite.
 suites = [
-  ['io_event', 'test_io_event.c'],
-  ['config',   'test_config.c'],
-  ['router',   'test_router.c'],
+  ['io_event',    'test_io_event.c'],
+  ['listener',    'test_listener.c'],
+  ['config',      'test_config.c'],
+  ['router',      'test_router.c'],
+  ['http_parser', 'test_http_parser.c'],
 ]
 
 foreach s : suites
