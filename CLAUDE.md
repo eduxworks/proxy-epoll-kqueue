@@ -176,8 +176,32 @@ ACCEPTED ─► READING_REQUEST ─► RESOLVING ─► CONNECTING ─► PROXYI
   `router_unref`.
 
 **Keep-alive**: HTTP/1.1 sin `Connection: close` vuelve a `READING_REQUEST`. La
-conexión upstream se reutiliza **solo si el nuevo `Host` enruta al mismo
-backend**; si no, se cierra y se abre otra.
+conexión upstream se reutiliza **solo si el nuevo `Host` enruta al mismo pool**;
+si no, se cierra y se abre otra.
+
+Reutilizar exige **saber dónde acaba cada mensaje** — contar mal aquí sirve
+media respuesta como si fuera la siguiente:
+
+| Delimitador | Fin del cuerpo | ¿Reutilizable? |
+|---|---|---|
+| `Content-Length: N` | tras N bytes | sí |
+| `Transfer-Encoding: chunked` | chunk de tamaño 0 + tráiler | sí |
+| 1xx, 204, 304, respuesta a `HEAD` | no hay cuerpo, diga lo que diga la longitud | sí |
+| ninguno | el cierre del socket | **no** |
+
+Reglas que se derivan de la tabla:
+
+- `chunked` manda sobre `Content-Length` si vienen los dos; interpretarlos
+  distinto es lo que permite colar una petición dentro de otra.
+- `Connection`, `Proxy-Connection` y `Keep-Alive` son **de salto a salto**:
+  describen el enlace por el que llegaron, no el siguiente. El proxy las
+  descarta de la petición y emite la suya hacia el upstream.
+- El cuerpo troceado **de la petición** aún no se delimita: esas conexiones se
+  marcan para cerrar al terminar en vez de arriesgar una desincronización.
+- **No se admite pipelining.** Mientras se espera una respuesta no se lee del
+  cliente, así que la petición siguiente se queda en el socket hasta que toca.
+  Evita tener que casar respuestas con peticiones fuera de orden, y ningún
+  cliente real lo usa.
 
 ---
 
@@ -302,11 +326,12 @@ Reparto fijo:
 (`config` 4, `router` 6, `http_parser` 7, `backend_pool` 5), que es lo que
 declara el README.
 
-Hay **3 suites más fuera de esa cuenta**, para módulos que el README lista pero
-no como suites: `io_event` (5), `listener` (3) y `buffer_pool` (4). Son las que
-comprueban en las tres plataformas lo que más difiere entre ellas —el bucle de
-eventos, `SO_REUSEPORT`/`accept`— y la aritmética de la arena. Total: 7 binarios,
-34 casos. `meson test` reporta 7 targets.
+Hay **4 suites más fuera de esa cuenta**, para cosas que el README no lista como
+suites: `io_event` (5), `listener` (3), `buffer_pool` (4) y `http_framing` (9).
+Las tres primeras comprueban en las tres plataformas lo que más difiere entre
+ellas —el bucle de eventos, `SO_REUSEPORT`/`accept`— y la aritmética de la
+arena. `http_framing` cubre la delimitación de mensajes, que es lo que sostiene
+el keep-alive. Total: 8 binarios, 43 casos. `meson test` reporta 8 targets.
 
 **Sin cubrir todavía**: `router_slot` (el swap atómico con refcount). Su test
 llega con el reload de E13, que es cuando se puede comprobar de punta a punta

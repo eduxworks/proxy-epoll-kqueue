@@ -314,6 +314,21 @@ case "$body" in
   *)                           bad "E14 encadenado incorrecto: $(echo "$body" | tr '\n' ' ')" ;;
 esac
 
+# E2: keep-alive. curl reutiliza la conexión cuando le pides varias URLs de
+# una vez, y avisa por el canal de traza cuando lo hace.
+if [ "$USE_HOSTS" = true ]; then
+  ka=$(curl -sv --max-time 5 -o /dev/null \
+        "http://a.test:$FRONT_PUBLIC/1" "http://a.test:$FRONT_PUBLIC/2" \
+        "http://a.test:$FRONT_PUBLIC/3" 2>&1)
+else
+  ka=$(curl -sv --max-time 5 -o /dev/null --resolve "a.test:$FRONT_PUBLIC:127.0.0.1" \
+        "http://a.test:$FRONT_PUBLIC/1" "http://a.test:$FRONT_PUBLIC/2" \
+        "http://a.test:$FRONT_PUBLIC/3" 2>&1)
+fi
+reused=$(printf '%s' "$ka" | grep -ci 'Re-using existing connection' || true)
+[ "$reused" -ge 2 ] && ok "E2  el cliente reutiliza la conexión ($reused de 2 veces)" \
+                    || bad "E2  no hubo keep-alive con el cliente ($reused reutilizaciones)"
+
 # E9: round-robin reparte 300 entre 3
 say "E9: reparto round-robin (300 peticiones)"
 : > "$TMPDIR_E2E/tally"

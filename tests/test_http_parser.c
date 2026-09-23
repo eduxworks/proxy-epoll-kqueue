@@ -168,7 +168,7 @@ static void test_xff_is_appended_not_replaced(void **state)
     assert_true(req.has_xff);
 
     char    out[2048];
-    ssize_t n = hp_rewrite(&req, with_xff, strlen(with_xff), "203.0.113.7", "http",
+    ssize_t n = hp_rewrite(&req, with_xff, strlen(with_xff), "203.0.113.7", "http", true,
                            out, sizeof out);
     assert_true(n > 0);
     out[n] = '\0';
@@ -190,7 +190,8 @@ static void test_xff_is_appended_not_replaced(void **state)
     /* sin X-Forwarded-For previa se emite solo la IP del cliente */
     hp_init(&req);
     assert_int_equal(hp_execute(&req, REQ, strlen(REQ)), HP_DONE);
-    n = hp_rewrite(&req, REQ, strlen(REQ), "198.51.100.9", "http", out, sizeof out);
+    n = hp_rewrite(&req, REQ, strlen(REQ), "198.51.100.9", "http", true, out,
+                   sizeof out);
     assert_true(n > 0);
     out[n] = '\0';
     assert_non_null(strstr(out, "X-Forwarded-For: 198.51.100.9\r\n"));
