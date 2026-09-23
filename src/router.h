@@ -12,6 +12,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "backend_pool.h"
 #include "config.h"
 
 typedef struct router router;
@@ -22,8 +23,8 @@ router *router_build(config *cfg);
 
 /* Orden de resolución: exacto -> wildcard más específico -> default -> NULL.
  * NULL significa 502. host puede venir con puerto y en mayúsculas. */
-const cfg_backend *router_lookup(const router *r, size_t frontend_index,
-                                 const char *host);
+backend_pool *router_lookup(const router *r, size_t frontend_index,
+                            const char *host);
 
 void router_ref(router *r);
 void router_unref(router *r); /* libera router y config al llegar a 0 */

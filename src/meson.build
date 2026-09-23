@@ -12,6 +12,7 @@ core_sources = files(
   'router.c',
   'http_parser.c',
   'listener.c',
+  'connection.c',
   'backend_pool.c',
   'buffer_pool.c',
 ) + io_event_impl

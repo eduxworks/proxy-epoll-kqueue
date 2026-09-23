@@ -31,3 +31,9 @@ foreach s : suites
     dependencies : [proxycore_dep, cmocka_dep])
   test(s[0], exe, suite : s[0])
 endforeach
+
+# Backend de pruebas para el e2e (R9). No es un test de meson: lo arranca
+# run_e2e.sh, que es quien orquesta proxy, servidores y aserciones.
+echo_server = executable('echo_server',
+  files('e2e/echo_server.c'),
+  build_by_default : true)

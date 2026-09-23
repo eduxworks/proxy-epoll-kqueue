@@ -14,14 +14,14 @@
 
 typedef struct route_entry {
     char               *host;
-    const cfg_backend  *target;
+    backend_pool       *target;
     struct route_entry *next;
 } route_entry;
 
 typedef struct {
     char              *suffix; /* ".b.test" para el patrón "*.b.test" */
     size_t             labels; /* cuántas etiquetas: mide la especificidad */
-    const cfg_backend *target;
+    backend_pool      *target;
 } wildcard_entry;
 
 typedef struct {
@@ -31,14 +31,19 @@ typedef struct {
     size_t             n_entries;
     wildcard_entry    *wild;
     size_t             n_wild;
-    const cfg_backend *fallback; /* ruta "default", o NULL */
+    backend_pool      *fallback; /* ruta "default", o NULL */
 } route_table;
 
 struct router {
-    atomic_int   refcount;
-    config      *cfg;
-    route_table *tables;
-    size_t       n_tables;
+    atomic_int    refcount;
+    config       *cfg;
+    route_table  *tables;
+    size_t        n_tables;
+    /* Los pools viven aquí, no aparte: así el refcount que protege la tabla de
+     * rutas protege también el estado de salud al que apunta, y una conexión
+     * en vuelo no puede quedarse con un pool liberado tras un reload. */
+    backend_pool **pools;
+    size_t         n_pools;
 };
 
 struct router_slot {
@@ -131,7 +136,8 @@ static void sort_wildcards(wildcard_entry *w, size_t n)
     }
 }
 
-static bool table_build(route_table *t, const cfg_frontend *f, const config *cfg)
+static bool table_build(route_table *t, const cfg_frontend *f,
+                        backend_pool **pools)
 {
     size_t n_exact = 0, n_wild = 0;
     for (size_t i = 0; i < f->n_routes; i++) {
@@ -156,8 +162,8 @@ static bool table_build(route_table *t, const cfg_frontend *f, const config *cfg
     }
 
     for (size_t i = 0; i < f->n_routes; i++) {
-        const cfg_route   *r      = &f->routes[i];
-        const cfg_backend *target = &cfg->backends[r->backend_index];
+        const cfg_route *r      = &f->routes[i];
+        backend_pool    *target = pools[r->backend_index];
 
         if (strcmp(r->host, "default") == 0) {
             t->fallback = target;
@@ -202,22 +208,31 @@ router *router_build(config *cfg)
         return NULL;
     }
 
-    r->tables = calloc(cfg->n_frontends, sizeof *r->tables);
-    if (r->tables == NULL) {
-        free(r);
-        return NULL;
-    }
-    r->n_tables = cfg->n_frontends;
-    r->cfg      = cfg;
+    r->cfg = cfg;
     atomic_init(&r->refcount, 1);
 
+    /* Un pool por [[backend]], antes que las tablas, porque las rutas apuntan
+     * a ellos. */
+    r->pools = calloc(cfg->n_backends, sizeof *r->pools);
+    r->tables = calloc(cfg->n_frontends, sizeof *r->tables);
+    if (r->pools == NULL || r->tables == NULL) {
+        router_unref(r);
+        return NULL;
+    }
+    r->n_pools  = cfg->n_backends;
+    r->n_tables = cfg->n_frontends;
+
+    for (size_t i = 0; i < cfg->n_backends; i++) {
+        r->pools[i] = pool_create(&cfg->backends[i]);
+        if (r->pools[i] == NULL) {
+            router_unref(r);
+            return NULL;
+        }
+    }
+
     for (size_t i = 0; i < cfg->n_frontends; i++) {
-        if (!table_build(&r->tables[i], &cfg->frontends[i], cfg)) {
-            for (size_t j = 0; j <= i; j++) {
-                table_free(&r->tables[j]);
-            }
-            free(r->tables);
-            free(r);
+        if (!table_build(&r->tables[i], &cfg->frontends[i], r->pools)) {
+            router_unref(r);
             return NULL;
         }
     }
@@ -225,8 +240,8 @@ router *router_build(config *cfg)
     return r;
 }
 
-const cfg_backend *router_lookup(const router *r, size_t frontend_index,
-                                 const char *host)
+backend_pool *router_lookup(const router *r, size_t frontend_index,
+                            const char *host)
 {
     if (r == NULL || frontend_index >= r->n_tables || host == NULL) {
         return NULL;
@@ -281,6 +296,12 @@ void router_unref(router *r)
         table_free(&r->tables[i]);
     }
     free(r->tables);
+
+    for (size_t i = 0; i < r->n_pools; i++) {
+        pool_destroy(r->pools[i]);
+    }
+    free(r->pools);
+
     config_free(r->cfg);
     free(r);
 }

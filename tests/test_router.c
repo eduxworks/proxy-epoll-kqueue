@@ -64,9 +64,9 @@ static void test_exact_beats_wildcard(void **state)
     router *r = build(TOML_BASE);
 
     /* "exacto.b.test" encaja también en "*.b.test": debe ganar el exacto. */
-    const cfg_backend *b = router_lookup(r, 0, "exacto.b.test");
+    backend_pool *b = router_lookup(r, 0, "exacto.b.test");
     assert_non_null(b);
-    assert_string_equal(b->name, "pool_exacto");
+    assert_string_equal(pool_config(b)->name, "pool_exacto");
 
     router_unref(r);
 }
@@ -78,19 +78,19 @@ static void test_most_specific_wildcard_wins(void **state)
     router *r = build(TOML_BASE);
 
     /* "x.sub.b.test" encaja en "*.b.test" y en "*.sub.b.test". */
-    const cfg_backend *b = router_lookup(r, 0, "x.sub.b.test");
+    backend_pool *b = router_lookup(r, 0, "x.sub.b.test");
     assert_non_null(b);
-    assert_string_equal(b->name, "pool_estrecho");
+    assert_string_equal(pool_config(b)->name, "pool_estrecho");
 
     /* "x.b.test" solo encaja en el ancho */
     b = router_lookup(r, 0, "x.b.test");
     assert_non_null(b);
-    assert_string_equal(b->name, "pool_ancho");
+    assert_string_equal(pool_config(b)->name, "pool_ancho");
 
     /* el wildcard exige algo delante: "b.test" pelado cae en default */
     b = router_lookup(r, 0, "b.test");
     assert_non_null(b);
-    assert_string_equal(b->name, "pool_default");
+    assert_string_equal(pool_config(b)->name, "pool_default");
 
     router_unref(r);
 }
@@ -100,10 +100,10 @@ static void test_default_route(void **state)
     (void)state;
 
     router            *r = build(TOML_BASE);
-    const cfg_backend *b = router_lookup(r, 0, "cualquier.cosa.test");
+    backend_pool *b = router_lookup(r, 0, "cualquier.cosa.test");
 
     assert_non_null(b);
-    assert_string_equal(b->name, "pool_default");
+    assert_string_equal(pool_config(b)->name, "pool_default");
 
     router_unref(r);
 }
@@ -141,9 +141,9 @@ static void test_host_normalization(void **state)
     router *r = build(TOML_BASE);
 
     /* mayúsculas y puerto no cambian el destino */
-    const cfg_backend *b = router_lookup(r, 0, "EXACTO.B.TEST:8080");
+    backend_pool *b = router_lookup(r, 0, "EXACTO.B.TEST:8080");
     assert_non_null(b);
-    assert_string_equal(b->name, "pool_exacto");
+    assert_string_equal(pool_config(b)->name, "pool_exacto");
 
     char norm[256];
     assert_true(router_normalize_host("A.Test:8080", norm, sizeof norm));
@@ -192,9 +192,9 @@ static void test_hash_collisions_resolve(void **state)
         snprintf(host, sizeof host, "h%d.test", i);
         snprintf(want, sizeof want, "pool_%d", i % 2);
 
-        const cfg_backend *b = router_lookup(r, 0, host);
+        backend_pool *b = router_lookup(r, 0, host);
         assert_non_null(b);
-        assert_string_equal(b->name, want);
+        assert_string_equal(pool_config(b)->name, want);
     }
 
     /* uno que no está sigue sin resolver */

@@ -237,3 +237,18 @@ int backend_weight(const backend *b)
 {
     return b != NULL ? b->cfg->weight : 0;
 }
+
+const cfg_backend *pool_config(const backend_pool *p)
+{
+    return p != NULL ? p->cfg : NULL;
+}
+
+const char *backend_host(const backend *b)
+{
+    return b != NULL ? b->cfg->host : NULL;
+}
+
+uint16_t backend_port(const backend *b)
+{
+    return b != NULL ? b->cfg->port : 0;
+}
