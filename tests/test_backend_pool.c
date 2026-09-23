@@ -11,6 +11,17 @@
 
 #include "backend_pool.h"
 
+/* cmocka 2.x marca assert_in_range como obsoleta y su sustituta
+ * (assert_int_in_range) no existe en la 1.1.7 que trae Ubuntu. Con una
+ * comprobación propia el test vale en las dos versiones y el mensaje de fallo
+ * dice el valor y el rango, que es lo que uno quiere leer. */
+static void assert_between(int value, int lo, int hi)
+{
+    if (value < lo || value > hi) {
+        fail_msg("valor %d fuera del rango [%d, %d]", value, lo, hi);
+    }
+}
+
 /* La config se construye con el parser real en vez de a mano: así el test
  * también protege el camino TOML -> pool. */
 static config *parse(const char *toml)
@@ -67,7 +78,7 @@ static void test_round_robin_is_even(void **state)
     tally(p, 300, counts, 3);
 
     for (int i = 0; i < 3; i++) {
-        assert_in_range(counts[i], 99, 101); /* 100 ±1 */
+        assert_between(counts[i], 99, 101); /* 100 ±1 */
     }
 
     pool_destroy(p);
@@ -98,8 +109,8 @@ static void test_down_backend_is_excluded(void **state)
     tally(p, 300, counts, 3);
 
     assert_int_equal(counts[1], 0);
-    assert_in_range(counts[0], 149, 151);
-    assert_in_range(counts[2], 149, 151);
+    assert_between(counts[0], 149, 151);
+    assert_between(counts[2], 149, 151);
 
     /* Y vuelve tras `rise` aciertos (2 por defecto). */
     pool_report(p, victim, true);
