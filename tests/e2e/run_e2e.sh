@@ -133,6 +133,7 @@ wait_for_port() {
 say "Paso 1: generando configuración"
 
 CONF="$TMPDIR_E2E/proxy.toml"
+STATS_SOCK="$TMPDIR_E2E/stats.sock"
 
 # workers = 1 a propósito. Con varios workers cada uno lleva su propio turno de
 # round-robin (no comparten estado, que es justo lo que los hace rápidos), así
@@ -143,6 +144,7 @@ cat > "$CONF" <<TOML
 workers   = 1
 max_conns = 1024
 log_level = "info"
+stats_socket = "$STATS_SOCK"
 
 [[frontend]]
 name   = "public"
@@ -416,8 +418,36 @@ distinct=$(sort -u "$TMPDIR_E2E/tally3" | grep -c '^server-')
 [ "$distinct" -ge 2 ] && ok "E5  el trabajo llega a todos los backends vivos ($distinct)" \
                       || bad "E5  solo $distinct backend recibió tráfico"
 
-# E17: pendiente
-note "E17 socket de estadísticas JSON: el módulo stats aún no existe"
+# E17: snapshot de estadísticas
+say "E17: estadísticas por socket UNIX"
+if command -v socat >/dev/null; then
+  snap=$(socat -T2 - "UNIX-CONNECT:$STATS_SOCK" 2>/dev/null)
+  if [ -n "$snap" ]; then
+    echo "$snap" | head -6 | sed 's/^/       /'
+    ok "E17 el socket devuelve un snapshot"
+
+    if command -v jq >/dev/null; then
+      echo "$snap" | jq -e . >/dev/null 2>&1 \
+        && ok "E17 el snapshot es JSON válido según jq" \
+        || bad "E17 el snapshot no es JSON válido"
+      # Tras todas las peticiones de arriba, los contadores no pueden estar a cero.
+      reqs=$(echo "$snap" | jq -r '.connections.requests')
+      [ "${reqs:-0}" -gt 0 ] \
+        && ok "E17 los contadores reflejan el tráfico servido ($reqs peticiones)" \
+        || bad "E17 el contador de peticiones sigue en ${reqs:-vacío}"
+      nbk=$(echo "$snap" | jq -r '.backends | length')
+      [ "${nbk:-0}" -gt 0 ] \
+        && ok "E17 el snapshot lista los backends ($nbk)" \
+        || bad "E17 el snapshot no lista backends"
+    else
+      note "E17 sin jq: no se valida la estructura del JSON"
+    fi
+  else
+    bad "E17 el socket $STATS_SOCK no devolvió nada"
+  fi
+else
+  note "E17 sin socat: no se puede consultar el socket"
+fi
 
 # --- resumen ----------------------------------------------------------------
 

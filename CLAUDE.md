@@ -326,12 +326,13 @@ Reparto fijo:
 (`config` 4, `router` 6, `http_parser` 7, `backend_pool` 5), que es lo que
 declara el README.
 
-Hay **4 suites más fuera de esa cuenta**, para cosas que el README no lista como
-suites: `io_event` (5), `listener` (3), `buffer_pool` (4) y `http_framing` (9).
-Las tres primeras comprueban en las tres plataformas lo que más difiere entre
-ellas —el bucle de eventos, `SO_REUSEPORT`/`accept`— y la aritmética de la
-arena. `http_framing` cubre la delimitación de mensajes, que es lo que sostiene
-el keep-alive. Total: 8 binarios, 43 casos. `meson test` reporta 8 targets.
+Hay **7 suites más fuera de esa cuenta**, para cosas que el README no lista como
+suites: `io_event` (5), `listener` (3), `buffer_pool` (4), `http_framing` (9),
+`log` (5), `health` (3) y `stats` (3). Cubren lo que más difiere entre
+plataformas —el bucle de eventos, `SO_REUSEPORT`/`accept`—, la aritmética de la
+arena, la delimitación de mensajes que sostiene el keep-alive, y los tres
+módulos con hilos o formato propio. Total: **11 binarios, 54 casos**;
+`meson test` reporta 11 targets.
 
 **Sin cubrir todavía**: `router_slot` (el swap atómico con refcount). Su test
 llega con el reload de E13, que es cuando se puede comprobar de punta a punta
@@ -378,8 +379,10 @@ Implementa los tres pasos del enunciado:
 - Nuevo TOML + `kill -HUP` ⇒ nuevo enrutado aplicado, 0 errores de `curl` — E13.
 - El upstream ve `X-Forwarded-For` con la IP del cliente — E14.
 - `socat - UNIX-CONNECT:$stats_socket` ⇒ JSON válido con uptime, contadores y
-  estado de backends — E17. **Pendiente**: el módulo `stats` aún no existe; el
-  script la marca como tal en vez de omitirla, para que el hueco se vea.
+  estado de backends — E17. Lo sirve el **worker 0**: un socket UNIX no se
+  comparte como un puerto con `SO_REUSEPORT`, así que las cifras son las suyas y
+  no la suma de los workers. Agregarlas exigiría memoria compartida entre
+  procesos, justo lo que este diseño evita para no tener contención.
 
 Sale con 0 solo si **todas** pasan; imprime un resumen por aserción; es
 idempotente (limpia procesos, temporales y `/etc/hosts` en `trap EXIT`).

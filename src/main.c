@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "buffer_pool.h"
@@ -22,6 +23,7 @@
 #include "log.h"
 #include "net_compat.h"
 #include "router.h"
+#include "stats.h"
 
 #define PROXY_VERSION "0.1.0"
 
@@ -210,6 +212,7 @@ static int run_worker(config *cfg, const char *config_path, int id, int workers)
     buffer_pool  *bufs   = NULL;
     conn_manager *conns  = NULL;
     listener    **ls     = NULL;
+    stats        *st     = NULL;
     size_t        n_ls   = 0;
     size_t        n_slots = slots_for(cfg, workers);
 
@@ -284,6 +287,16 @@ static int run_worker(config *cfg, const char *config_path, int id, int workers)
         goto done;
     }
 
+    /* E17. Solo el worker 0: un socket UNIX no se comparte como un puerto con
+     * SO_REUSEPORT, así que lo publica uno y las cifras son las suyas. */
+    if (id == 0 && cfg->global.stats_socket != NULL) {
+        st = stats_open(cfg->global.stats_socket, loop, slot, conns, id, time(NULL));
+        if (st == NULL) {
+            log_write(LOG_WARN, "[worker %d] sin socket de estadísticas en %s: %s",
+                      id, cfg->global.stats_socket, strerror(errno));
+        }
+    }
+
     if (setup_signals(loop) < 0) {
         goto done;
     }
@@ -303,6 +316,7 @@ static int run_worker(config *cfg, const char *config_path, int id, int workers)
 done:
     /* El hilo de sondas se para antes que el router: si no, podría seguir
      * usando pools que el slot está a punto de liberar. */
+    stats_close(st);
     health_stop(W.hc);
     W.hc = NULL;
 

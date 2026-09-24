@@ -30,5 +30,8 @@ void conn_accepted(conn_manager *m, int client_fd,
                    const struct sockaddr_storage *peer, size_t frontend_index);
 
 size_t conn_manager_active(const conn_manager *m);
+unsigned long conn_manager_accepted(const conn_manager *m);
+unsigned long conn_manager_requests(const conn_manager *m);
+unsigned long conn_manager_errors(const conn_manager *m);
 
 #endif /* PROXY_CONNECTION_H */

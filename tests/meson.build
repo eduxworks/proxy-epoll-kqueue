@@ -26,6 +26,7 @@ suites = [
   ['http_framing', 'test_http_framing.c'],
   ['log',          'test_log.c'],
   ['health',       'test_health.c'],
+  ['stats',        'test_stats.c'],
 ]
 
 foreach s : suites

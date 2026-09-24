@@ -92,6 +92,9 @@ struct conn_manager {
     router_slot *slot;
     buffer_pool *bufs;
     conn        *free_list;
+    unsigned long accepted;  /* conexiones aceptadas */
+    unsigned long requests;  /* peticiones completadas */
+    unsigned long errors;    /* respuestas de error generadas por el proxy */
     size_t       active;
 };
 
@@ -119,6 +122,7 @@ static conn *conn_acquire(conn_manager *m)
     c->client_fd   = -1;
     c->upstream_fd = -1;
     m->active++;
+    m->accepted++;
     return c;
 }
 
@@ -158,6 +162,21 @@ void conn_manager_destroy(conn_manager *m)
         c = next;
     }
     free(m);
+}
+
+unsigned long conn_manager_accepted(const conn_manager *m)
+{
+    return m != NULL ? m->accepted : 0;
+}
+
+unsigned long conn_manager_requests(const conn_manager *m)
+{
+    return m != NULL ? m->requests : 0;
+}
+
+unsigned long conn_manager_errors(const conn_manager *m)
+{
+    return m != NULL ? m->errors : 0;
 }
 
 size_t conn_manager_active(const conn_manager *m)
@@ -248,6 +267,7 @@ static void send_error(conn *c, int code)
         break; /* si el cliente ya no escucha, tampoco pasa nada */
     }
 
+    c->mgr->errors++;
     conn_close(c);
 }
 
@@ -363,6 +383,7 @@ static void start_next_request(conn *c)
     c->in_len = c->in_off = 0;
     c->out_len = c->out_off = 0;
     c->served++;
+    c->mgr->requests++;
 
     c->state = CONN_READING_REQUEST;
     io_loop_mod(c->mgr->loop, c->client_fd, IO_READ);
