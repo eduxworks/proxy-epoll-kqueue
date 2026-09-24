@@ -18,6 +18,7 @@
 #include "connection.h"
 #include "io_event.h"
 #include "listener.h"
+#include "log.h"
 #include "net_compat.h"
 #include "router.h"
 
@@ -57,7 +58,7 @@ static void reload_config(void)
     char    err[512] = { 0 };
     config *cfg      = config_load(W.config_path, err, sizeof err);
     if (cfg == NULL) {
-        fprintf(stderr, "[worker %d] recarga rechazada: %s\n", W.id, err);
+        log_write(LOG_ERROR, "[worker %d] recarga rechazada: %s", W.id, err);
         return;
     }
 
@@ -66,20 +67,20 @@ static void reload_config(void)
      * otra cosa. Cambiar de puertos en caliente exige abrir y cerrar sockets,
      * que aún no se hace, así que se rechaza en vez de enrutar mal. */
     if (cfg->n_frontends != W.n_ls) {
-        fprintf(stderr,
-                "[worker %d] recarga rechazada: el número de frontends cambió "
-                "(%zu -> %zu); reinicia para eso\n",
-                W.id, W.n_ls, cfg->n_frontends);
+        log_write(LOG_ERROR,
+                  "[worker %d] recarga rechazada: el número de frontends cambió "
+                  "(%zu -> %zu); reinicia para eso",
+                  W.id, W.n_ls, cfg->n_frontends);
         config_free(cfg);
         return;
     }
     for (size_t i = 0; i < W.n_ls; i++) {
         if (cfg->frontends[i].listen_port != listener_port(W.ls[i])) {
-            fprintf(stderr,
-                    "[worker %d] recarga rechazada: frontend[%zu] cambió de puerto "
-                    "(%u -> %u); reinicia para eso\n",
-                    W.id, i, (unsigned)listener_port(W.ls[i]),
-                    (unsigned)cfg->frontends[i].listen_port);
+            log_write(LOG_ERROR,
+                      "[worker %d] recarga rechazada: frontend[%zu] cambió de "
+                      "puerto (%u -> %u); reinicia para eso",
+                      W.id, i, (unsigned)listener_port(W.ls[i]),
+                      (unsigned)cfg->frontends[i].listen_port);
             config_free(cfg);
             return;
         }
@@ -87,8 +88,9 @@ static void reload_config(void)
 
     router *next = router_build(cfg);
     if (next == NULL) {
-        fprintf(stderr, "[worker %d] recarga rechazada: no se pudo construir el router\n",
-                W.id);
+        log_write(LOG_ERROR,
+                  "[worker %d] recarga rechazada: no se pudo construir el router",
+                  W.id);
         config_free(cfg);
         return;
     }
@@ -96,7 +98,7 @@ static void reload_config(void)
     /* Intercambio atómico. Las conexiones en vuelo conservan su referencia al
      * router viejo y terminan con la configuración con la que empezaron. */
     router_slot_publish(W.slot, next);
-    fprintf(stderr, "[worker %d] configuración recargada\n", W.id);
+    log_write(LOG_INFO, "[worker %d] configuración recargada", W.id);
 }
 
 static void handle_signal(unsigned char signo)
@@ -208,9 +210,22 @@ static int run_worker(config *cfg, const char *config_path, int id, int workers)
     size_t        n_ls   = 0;
     size_t        n_slots = slots_for(cfg, workers);
 
+    /* El registro se levanta lo primero: a partir de aquí cualquier fallo se
+     * cuenta por ahí. Lo de antes va a stderr por necesidad, no por gusto. */
+    log_level lvl = LOG_INFO;
+    if (cfg->global.log_level != NULL) {
+        log_level_parse(cfg->global.log_level, &lvl);
+    }
+    if (log_init(cfg->global.log_file, lvl) < 0) {
+        fprintf(stderr, "[worker %d] no se pudo abrir %s: %s\n", id,
+                cfg->global.log_file, strerror(errno));
+        config_free(cfg);
+        return EXIT_FAILURE;
+    }
+
     rt = router_build(cfg);
     if (rt == NULL) {
-        fprintf(stderr, "[worker %d] no se pudo construir el router\n", id);
+        log_write(LOG_ERROR, "[worker %d] no se pudo construir el router", id);
         config_free(cfg);
         return EXIT_FAILURE;
     }
@@ -282,6 +297,7 @@ done:
     bufpool_destroy(bufs);
     router_slot_destroy(slot); /* suelta la última referencia del router */
     io_loop_destroy(loop);
+    log_shutdown(); /* vacía lo pendiente antes de irse */
     if (sig_pipe[0] >= 0) {
         close(sig_pipe[0]);
         close(sig_pipe[1]);

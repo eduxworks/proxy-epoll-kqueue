@@ -24,6 +24,7 @@ suites = [
   ['backend_pool', 'test_backend_pool.c'],
   ['buffer_pool',  'test_buffer_pool.c'],
   ['http_framing', 'test_http_framing.c'],
+  ['log',          'test_log.c'],
 ]
 
 foreach s : suites

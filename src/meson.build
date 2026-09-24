@@ -15,6 +15,7 @@ core_sources = files(
   'connection.c',
   'backend_pool.c',
   'buffer_pool.c',
+  'log.c',
 ) + io_event_impl
 
 libproxycore = static_library('proxycore',
