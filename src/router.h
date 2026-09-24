@@ -26,6 +26,10 @@ router *router_build(config *cfg);
 backend_pool *router_lookup(const router *r, size_t frontend_index,
                             const char *host);
 
+/* Recorrido de los pools, para el hilo de sondas activas (E11). */
+size_t        router_pool_count(const router *r);
+backend_pool *router_pool_at(const router *r, size_t i);
+
 void router_ref(router *r);
 void router_unref(router *r); /* libera router y config al llegar a 0 */
 

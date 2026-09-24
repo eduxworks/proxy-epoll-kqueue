@@ -15,6 +15,7 @@
 
 #include "buffer_pool.h"
 #include "config.h"
+#include "health.h"
 #include "connection.h"
 #include "io_event.h"
 #include "listener.h"
@@ -37,6 +38,7 @@ static struct {
     router_slot *slot;
     const char  *config_path;
     listener   **ls;
+    health      *hc;
     size_t       n_ls;
     int          id;
 } W;
@@ -98,6 +100,7 @@ static void reload_config(void)
     /* Intercambio atómico. Las conexiones en vuelo conservan su referencia al
      * router viejo y terminan con la configuración con la que empezaron. */
     router_slot_publish(W.slot, next);
+    health_set_router(W.hc, next); /* que las sondas pasen a los pools nuevos */
     log_write(LOG_INFO, "[worker %d] configuración recargada", W.id);
 }
 
@@ -272,6 +275,15 @@ static int run_worker(config *cfg, const char *config_path, int id, int workers)
     W.n_ls        = n_ls;
     W.id          = id;
 
+    /* Sondas activas (E11). Sin ellas, un pool cuyos miembros caen todos a la
+     * vez se queda muerto para siempre: al no haber a quién enrutar tampoco
+     * hay intentos que puedan tener éxito y devolverlos al reparto. */
+    W.hc = health_start(rt);
+    if (W.hc == NULL) {
+        log_write(LOG_ERROR, "[worker %d] no se pudo arrancar el sondeo de salud", id);
+        goto done;
+    }
+
     if (setup_signals(loop) < 0) {
         goto done;
     }
@@ -289,6 +301,11 @@ static int run_worker(config *cfg, const char *config_path, int id, int workers)
     rc = io_loop_run(loop) < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 
 done:
+    /* El hilo de sondas se para antes que el router: si no, podría seguir
+     * usando pools que el slot está a punto de liberar. */
+    health_stop(W.hc);
+    W.hc = NULL;
+
     for (size_t i = 0; i < n_ls; i++) {
         listener_close(ls[i]);
     }

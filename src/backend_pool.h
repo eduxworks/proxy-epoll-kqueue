@@ -31,6 +31,9 @@ backend *pool_pick(backend_pool *p);
  * fallos seguidos y devuelve a UP tras `rise` aciertos. */
 void pool_report(backend_pool *p, backend *b, bool ok);
 
+/* Resultado de una sonda activa. Solo lo llama el hilo de health (E11). */
+void backend_probe_result(backend_pool *p, backend *b, bool ok);
+
 const cfg_backend *pool_config(const backend_pool *p);
 size_t   pool_size(const backend_pool *p);
 backend *pool_backend_at(backend_pool *p, size_t i);

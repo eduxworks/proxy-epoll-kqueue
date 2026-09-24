@@ -1,5 +1,6 @@
 /* backend_pool.c — round_robin, weighted y least_conn con exclusión de caídos. */
 
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -7,11 +8,13 @@
 
 struct backend {
     const cfg_server *cfg;
-    bool              up;
+    _Atomic bool      up;       /* lo escriben el bucle y el hilo de sondas */
     int               fails;     /* fallos consecutivos */
     int               successes; /* aciertos consecutivos estando DOWN */
     int               active;    /* conexiones vivas, para least_conn */
     int               current;   /* peso dinámico del weighted suave */
+    int               p_ok;      /* sondas activas: solo el hilo de health */
+    int               p_fail;
 };
 
 struct backend_pool {
@@ -45,7 +48,7 @@ backend_pool *pool_create(const cfg_backend *cfg)
         /* Se arranca suponiendo que están vivos: si no lo están, el primer
          * intento fallido lo descubre antes que cualquier sonda. */
         p->backends[i].cfg = &cfg->servers[i];
-        p->backends[i].up  = true;
+        atomic_init(&p->backends[i].up, true);
     }
 
     return p;
@@ -80,7 +83,7 @@ size_t pool_up_count(const backend_pool *p)
     }
     size_t n = 0;
     for (size_t i = 0; i < p->n; i++) {
-        if (p->backends[i].up) {
+        if (atomic_load_explicit(&p->backends[i].up, memory_order_relaxed)) {
             n++;
         }
     }
@@ -95,7 +98,7 @@ static backend *pick_round_robin(backend_pool *p)
     for (size_t k = 0; k < p->n; k++) {
         size_t   i = (p->rr + k) % p->n;
         backend *b = &p->backends[i];
-        if (b->up) {
+        if (atomic_load_explicit(&b->up, memory_order_relaxed)) {
             p->rr = (i + 1) % p->n;
             return b;
         }
@@ -113,7 +116,7 @@ static backend *pick_weighted(backend_pool *p)
 
     for (size_t i = 0; i < p->n; i++) {
         backend *b = &p->backends[i];
-        if (!b->up) {
+        if (!atomic_load_explicit(&b->up, memory_order_relaxed)) {
             continue;
         }
         b->current += b->cfg->weight;
@@ -142,7 +145,7 @@ static backend *pick_least_conn(backend_pool *p)
     for (size_t k = 0; k < p->n; k++) {
         size_t   i = (start + k) % p->n;
         backend *b = &p->backends[i];
-        if (!b->up) {
+        if (!atomic_load_explicit(&b->up, memory_order_relaxed)) {
             continue;
         }
         /* Estrictamente menor: a igualdad gana el primero desde el punto de
@@ -183,10 +186,12 @@ void pool_report(backend_pool *p, backend *b, bool ok)
         return;
     }
 
+    bool up = atomic_load_explicit(&b->up, memory_order_relaxed);
+
     if (ok) {
         b->fails = 0;
-        if (!b->up && ++b->successes >= p->cfg->health.rise) {
-            b->up        = true;
+        if (!up && ++b->successes >= p->cfg->health.rise) {
+            atomic_store_explicit(&b->up, true, memory_order_relaxed);
             b->successes = 0;
             /* Entra limpio al reparto: arrastrar el peso dinámico de antes de
              * caerse le daría una ráfaga injusta al volver. */
@@ -196,9 +201,40 @@ void pool_report(backend_pool *p, backend *b, bool ok)
     }
 
     b->successes = 0;
-    if (b->up && ++b->fails >= p->cfg->health.fall) {
-        b->up    = false;
+    if (up && ++b->fails >= p->cfg->health.fall) {
+        atomic_store_explicit(&b->up, false, memory_order_relaxed);
         b->fails = 0;
+    }
+}
+
+/* Resultado de una sonda activa (E11). Lo llama SOLO el hilo de health, así
+ * que sus contadores no se comparten con los de la salud pasiva: cada vía
+ * lleva su propia cuenta y ambas escriben el mismo `up`, que es atómico.
+ *
+ * Que dos hilos escriban `up` no es una carrera dañina: cada uno refleja lo
+ * que acaba de observar y el valor converge al estado real del backend. Lo que
+ * no puede pasar es leerlo a medias, y por eso es atómico. */
+void backend_probe_result(backend_pool *p, backend *b, bool ok)
+{
+    if (p == NULL || b == NULL) {
+        return;
+    }
+
+    bool up = atomic_load_explicit(&b->up, memory_order_relaxed);
+
+    if (ok) {
+        b->p_fail = 0;
+        if (!up && ++b->p_ok >= p->cfg->health.rise) {
+            atomic_store_explicit(&b->up, true, memory_order_relaxed);
+            b->p_ok = 0;
+        }
+        return;
+    }
+
+    b->p_ok = 0;
+    if (up && ++b->p_fail >= p->cfg->health.fall) {
+        atomic_store_explicit(&b->up, false, memory_order_relaxed);
+        b->p_fail = 0;
     }
 }
 
@@ -225,7 +261,7 @@ const char *backend_addr(const backend *b)
 
 bool backend_is_up(const backend *b)
 {
-    return b != NULL && b->up;
+    return b != NULL && atomic_load_explicit(&b->up, memory_order_relaxed);
 }
 
 int backend_active_conns(const backend *b)

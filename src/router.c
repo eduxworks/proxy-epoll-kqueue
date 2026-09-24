@@ -348,3 +348,16 @@ void router_slot_publish(router_slot *slot, router *next)
      * referencia y la última en terminar es la que libera de verdad. */
     router_unref(old);
 }
+
+size_t router_pool_count(const router *r)
+{
+    return r != NULL ? r->n_pools : 0;
+}
+
+backend_pool *router_pool_at(const router *r, size_t i)
+{
+    if (r == NULL || i >= r->n_pools) {
+        return NULL;
+    }
+    return r->pools[i];
+}
