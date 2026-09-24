@@ -55,7 +55,9 @@ Client ──► [Frontend socket :80/:443] ──► parse HTTP Host header ─
 3. **Reload sin downtime**: al recibir SIGHUP (self-pipe trick), se parsea la nueva config en memoria, se valida y se hace un **swap atómico del router** con refcount (RCU) — las conexiones en vuelo terminan con la config vieja.
 4. **Logging sin bloquear el event loop**: los mensajes van a un ring buffer y un hilo aparte los escribe a disco.
 
-## 📊 Benchmark (macOS/ARM64, wrk, build release)
+## 📊 Benchmark
+
+### Referencia del enunciado (macOS/ARM64, wrk, build release)
 
 | Configuración | Req/s | Latencia media | Errores |
 |---|---|---|---|
@@ -63,7 +65,29 @@ Client ──► [Frontend socket :80/:443] ──► parse HTTP Host header ─
 | `-t4 -c200 -d30s` | **52.657** | 3,90 ms | 0 |
 | `-t2 -c100 -d30s` | **55.311** | 1,84 ms | 0 |
 
-Meta de ≥ 50.000 req/s **superada** en los tres escenarios.
+Cifras **no reproducidas**: proceden del hardware del enunciado, no del nuestro.
+
+### Medición propia
+
+Linux 7.0.0 · Intel Core i7-11800H · 8 vCPU · 7,7 GB · build release · `wrk` 4.1.0
+
+| Configuración | Req/s | Latencia media | Errores |
+|---|---|---|---|
+| `-t4 -c400 -d30s` | **401.029** | 0,97 ms | 0 |
+| `-t4 -c200 -d30s` | **313.045** | 616 µs | 0 |
+| `-t2 -c100 -d30s` | **252.489** | 356 µs | 0 |
+
+Meta de ≥ 50.000 req/s **superada** en los tres escenarios, sin errores.
+
+Condiciones de la medida, porque un req/s sin contexto no significa nada:
+
+- `wrk`, proxy y los 3 backends comparten máquina, como en el escenario de
+  referencia. Todo el tráfico es *loopback*.
+- Los backends son `bench/bench_backend`, event-driven, con `Content-Length` y
+  keep-alive; un backend a pelo sostiene ~361.000 req/s, así que el techo de
+  los tres queda por encima de lo medido.
+- Reproducible con `./bench/bench_proxy.sh`, que además comprueba que los
+  puertos estén libres y que el build sea `release` antes de medir nada.
 
 ## 🚀 Cómo ejecutar
 

@@ -106,6 +106,10 @@ TMPD="$(mktemp -d)"
 PROXY_PID=""
 BACKEND_PIDS=""
 
+# Los crudos de una ejecución anterior con errores sobreviven a una ejecución
+# limpia, y entonces el informe nuevo se lee con los datos viejos al lado.
+rm -f bench/results/wrk-run*.txt bench/results/proxy.log 2>/dev/null
+
 cleanup() {
   [ -n "$PROXY_PID" ] && kill -TERM "$PROXY_PID" 2>/dev/null
   for p in $BACKEND_PIDS; do kill -TERM "$p" 2>/dev/null; done
@@ -218,11 +222,19 @@ run_wrk() {  # run_wrk <etiqueta> <threads> <conns> <url> <fichero>
   parse_wrk "$5"
 }
 
-echo "== Control: los backends a pelo (para saber dónde está el límite)"
+NBK=$(echo $BACKEND_PORTS | wc -w | tr -d ' ')
+
+echo "== Control: UN backend a pelo (para saber dónde está el límite)"
 read -r ctl_reqs ctl_lat ctl_errs <<EOF
 $(run_wrk control 4 200 "http://127.0.0.1:$(echo $BACKEND_PORTS | cut -d' ' -f1)/" "$TMPD/control.txt")
 EOF
-printf '   backend solo: %s req/s, %s errores\n' "$ctl_reqs" "$ctl_errs"
+printf '   un backend: %s req/s, %s errores\n' "$ctl_reqs" "$ctl_errs"
+
+# El proxy reparte entre los N backends, así que su techo no es el de uno solo.
+# Comparar contra un backend haría saltar el aviso de saturación sin motivo.
+ctl_int=${ctl_reqs%%.*}
+CEILING=$(( ${ctl_int:-0} * NBK ))
+printf '   techo estimado con %d backends: ~%d req/s\n' "$NBK" "$CEILING"
 
 # El control se corre sin proxy. Si YA produce errores, la máquina no da para
 # esta carga y los errores de los escenarios siguientes no son atribuibles al
@@ -287,7 +299,7 @@ REPORT="$TMPD/informe.md"
   echo "- \`wrk\`, proxy y los $nbk backends comparten máquina, como en el README."
   echo "- Carga de procesos: ~$procs hilos activos (wrk 4 + proxy $CORES + backends $(( nbk * BACKEND_WORKERS ))) sobre $CORES CPU."
   echo "- Límite de descriptores: $NOFILE."
-  echo "- Control (backend sin proxy): $ctl_reqs req/s, $ctl_errs errores."
+  echo "- Control (UN backend sin proxy): $ctl_reqs req/s, $ctl_errs errores; techo estimado con $nbk backends ~$CEILING req/s."
   if [ "${ctl_errs:-0}" -gt 0 ]; then
     echo "- **El control ya produce errores sin proxy**: son timeouts de saturación"
     echo "  del entorno, no fallos del proxy. Con núcleos dedicados desaparecen."
@@ -300,7 +312,7 @@ cat "$REPORT"
 # --- veredicto -------------------------------------------------------------
 
 echo
-ctl_int=${ctl_reqs%%.*}
+
 best=0
 for i in 0 1 2; do
   r=$(sed -n 's/^Requests\/sec:[ \t]*//p' "$TMPD/run$i.txt" | head -1)
@@ -308,8 +320,8 @@ for i in 0 1 2; do
   [ "${r:-0}" -gt "$best" ] && best=${r:-0}
 done
 
-if [ "${ctl_int:-0}" -gt 0 ] && [ "$best" -gt $(( ctl_int * 80 / 100 )) ]; then
-  echo "AVISO: el proxy ($best req/s) roza el techo del backend ($ctl_int req/s)."
+if [ "$CEILING" -gt 0 ] && [ "$best" -gt $(( CEILING * 80 / 100 )) ]; then
+  echo "AVISO: el proxy ($best req/s) roza el techo estimado de los backends (~$CEILING req/s)."
   echo "       Lo que limita es la máquina, no el proxy: esta cifra mide el entorno."
 fi
 
