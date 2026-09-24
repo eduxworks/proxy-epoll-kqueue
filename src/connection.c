@@ -72,7 +72,9 @@ typedef struct conn {
 
     http_request req;
     bool         req_ready;     /* cabecera ya reescrita en out */
-    uint64_t     req_body_left; /* cuerpo de la petición por reenviar */
+    uint64_t     req_body_left; /* cuerpo por reenviar, si va por longitud */
+    hp_chunked   req_chunk;     /* escáner del cuerpo troceado del cliente */
+    bool         req_complete;  /* la petición entera ya está en `out` */
 
     http_response resp;
     hp_chunked    chunk;
@@ -338,7 +340,7 @@ static void update_masks(conn *c)
     /* Del cliente solo se lee mientras quede cuerpo de petición por reenviar.
      * Terminada la petición se deja de leer: así la siguiente se queda en el
      * socket y no se cuela en medio de esta. */
-    if (!c->client_eof && c->req_body_left > 0 && c->out_len < SLOT) {
+    if (!c->client_eof && !c->req_complete && c->out_len < SLOT) {
         cm |= IO_READ;
     }
     if (c->in_off < c->in_len) {
@@ -374,6 +376,7 @@ static void start_next_request(conn *c)
     hp_response_init(&c->resp);
     c->req_ready         = false;
     c->req_body_left     = 0;
+    c->req_complete      = false;
     c->resp_headers_done = false;
     c->resp_complete     = false;
     c->resp_body_left    = 0;
@@ -527,8 +530,18 @@ static void on_client_event(int fd, unsigned events, void *ctx)
         }
 
         size_t got = c->out_len - before;
-        if (c->req_body_left != UINT64_MAX) {
-            c->req_body_left = got >= c->req_body_left ? 0 : c->req_body_left - got;
+        if (!c->req_complete && got > 0) {
+            if (c->req.body_mode == HP_BODY_CHUNKED) {
+                hp_chunked_feed(&c->req_chunk, (const char *)c->out + before, got);
+                if (c->req_chunk.error) {
+                    conn_close(c);
+                    return;
+                }
+                c->req_complete = c->req_chunk.done;
+            } else {
+                c->req_body_left = got >= c->req_body_left ? 0 : c->req_body_left - got;
+                c->req_complete  = c->req_body_left == 0;
+            }
         }
         if (eof) {
             c->client_eof = true;
@@ -696,20 +709,29 @@ static bool prepare_request(conn *c)
     c->out_len = (size_t)hn + body;
     c->out_off = 0;
 
+    /* El cuerpo de la petición se delimita igual que el de la respuesta: por
+     * longitud o troceado. Saber dónde acaba es lo que permite dejar de leer
+     * del cliente en el momento justo y reutilizar su conexión. */
     switch (c->req.body_mode) {
     case HP_BODY_LENGTH:
         c->req_body_left =
             c->req.content_length > body ? c->req.content_length - body : 0;
+        c->req_complete = c->req_body_left == 0;
         break;
+
     case HP_BODY_CHUNKED:
-        /* Delimitar un cuerpo troceado del cliente exige su propio contador;
-         * mientras no exista se reenvía hasta que el cliente cierre, y esa
-         * conexión no se reutiliza. */
-        c->req_body_left = UINT64_MAX;
-        c->keep_client   = false;
+        hp_chunked_init(&c->req_chunk);
+        hp_chunked_feed(&c->req_chunk, (const char *)c->out + hn, body);
+        if (c->req_chunk.error) {
+            send_error(c, 400); /* troceado mal formado: no se reenvía */
+            return false;
+        }
+        c->req_complete = c->req_chunk.done;
         break;
+
     default:
         c->req_body_left = 0;
+        c->req_complete  = true;
         break;
     }
 

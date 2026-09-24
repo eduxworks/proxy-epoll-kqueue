@@ -72,6 +72,55 @@ static bool serve_one(int fd, const char *id)
     }
     req[len] = '\0';
 
+    /* El cuerpo hay que consumirlo aunque no se use: con keep-alive, lo que
+     * quede sin leer se interpretaría como el principio de la petición
+     * siguiente. */
+    const char *hdr_end = strstr(req, "\r\n\r\n");
+    size_t      body_in = hdr_end != NULL ? len - (size_t)(hdr_end + 4 - req) : 0;
+
+    size_t      clen_len = 0;
+    const char *clen     = find_header(req, "Content-Length", &clen_len);
+    if (clen != NULL) {
+        size_t want = (size_t)strtoul(clen, NULL, 10);
+        while (body_in < want) {
+            char   sink[4096];
+            size_t chunk = want - body_in;
+            ssize_t n = read(fd, sink, chunk < sizeof sink ? chunk : sizeof sink);
+            if (n <= 0) {
+                if (n < 0 && errno == EINTR) {
+                    continue;
+                }
+                return false;
+            }
+            body_in += (size_t)n;
+        }
+    } else {
+        size_t      te_len = 0;
+        const char *te     = find_header(req, "Transfer-Encoding", &te_len);
+        if (te != NULL && te_len >= 7 && strncasecmp(te, "chunked", 7) == 0) {
+            /* Se lee hasta el chunk final. No hace falta des-trocear: basta
+             * con vaciar el socket hasta la marca de fin. */
+            char   acc[8192];
+            size_t got = body_in < sizeof acc ? body_in : sizeof acc - 1;
+            if (hdr_end != NULL && got > 0) {
+                memcpy(acc, hdr_end + 4, got);
+            }
+            acc[got] = '\0';
+
+            while (strstr(acc, "0\r\n\r\n") == NULL && got < sizeof acc - 1) {
+                ssize_t n = read(fd, acc + got, sizeof acc - 1 - got);
+                if (n <= 0) {
+                    if (n < 0 && errno == EINTR) {
+                        continue;
+                    }
+                    return false;
+                }
+                got += (size_t)n;
+                acc[got] = '\0';
+            }
+        }
+    }
+
     size_t      xff_len = 0, host_len = 0;
     const char *xff  = find_header(req, "X-Forwarded-For", &xff_len);
     const char *host = find_header(req, "Host", &host_len);

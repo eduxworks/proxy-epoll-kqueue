@@ -196,8 +196,11 @@ Reglas que se derivan de la tabla:
 - `Connection`, `Proxy-Connection` y `Keep-Alive` son **de salto a salto**:
   describen el enlace por el que llegaron, no el siguiente. El proxy las
   descarta de la petición y emite la suya hacia el upstream.
-- El cuerpo troceado **de la petición** aún no se delimita: esas conexiones se
-  marcan para cerrar al terminar en vez de arriesgar una desincronización.
+- El cuerpo **de la petición** se delimita igual que el de la respuesta, con el
+  mismo escáner: por `Content-Length` o troceado. Saber dónde acaba es lo que
+  permite dejar de leer del cliente en el momento justo y reutilizar también su
+  conexión. Un troceado mal formado es `400` y no se reenvía: pasarlo al
+  upstream sería dejar que otro lo interprete distinto.
 - **No se admite pipelining.** Mientras se espera una respuesta no se lee del
   cliente, así que la petición siguiente se queda en el socket hasta que toca.
   Evita tener que casar respuestas con peticiones fuera de orden, y ningún

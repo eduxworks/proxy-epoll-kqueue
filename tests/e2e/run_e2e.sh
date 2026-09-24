@@ -331,6 +331,27 @@ reused=$(printf '%s' "$ka" | grep -ci 'Re-using existing connection' || true)
 [ "$reused" -ge 2 ] && ok "E2  el cliente reutiliza la conexión ($reused de 2 veces)" \
                     || bad "E2  no hubo keep-alive con el cliente ($reused reutilizaciones)"
 
+# Cuerpo troceado del cliente: curl usa Transfer-Encoding: chunked cuando el
+# cuerpo viene de una tubería y no sabe su tamaño de antemano.
+if [ "$USE_HOSTS" = true ]; then
+  ch=$(printf 'hola mundo troceado' | curl -sv --max-time 5 \
+        -H 'Transfer-Encoding: chunked' --data-binary @- \
+        "http://a.test:$FRONT_PUBLIC/1" "http://a.test:$FRONT_PUBLIC/2" 2>&1)
+else
+  ch=$(printf 'hola mundo troceado' | curl -sv --max-time 5 \
+        --resolve "a.test:$FRONT_PUBLIC:127.0.0.1" \
+        -H 'Transfer-Encoding: chunked' --data-binary @- \
+        "http://a.test:$FRONT_PUBLIC/1" "http://a.test:$FRONT_PUBLIC/2" 2>&1)
+fi
+printf '%s' "$ch" | grep -q '< HTTP/1.1 200' \
+  && ok "E7  una petición con cuerpo troceado llega al backend" \
+  || bad "E7  el POST troceado no obtuvo 200"
+# Si el proxy no supiera dónde acaba el cuerpo troceado, no podría reutilizar
+# la conexión: tendría que cerrar para no desincronizarse.
+printf '%s' "$ch" | grep -qi 'Re-using existing connection' \
+  && ok "E2  tras un cuerpo troceado la conexión se reutiliza" \
+  || bad "E2  el cuerpo troceado impide reutilizar la conexión"
+
 # E9: round-robin reparte 300 entre 3
 say "E9: reparto round-robin (300 peticiones)"
 : > "$TMPDIR_E2E/tally"
