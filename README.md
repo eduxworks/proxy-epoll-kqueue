@@ -73,18 +73,23 @@ Linux 7.0.0 · Intel Core i7-11800H · 8 vCPU · 7,7 GB · build release · `wrk
 
 | Configuración | Req/s | Latencia media | Errores |
 |---|---|---|---|
-| `-t4 -c400 -d30s` | **339.040** | 1,13 ms | 0 |
-| `-t4 -c200 -d30s` | **253.272** | 766 µs | 0 |
-| `-t2 -c100 -d30s` | **211.137** | 442 µs | 0 |
+| `-t4 -c400 -d30s` | **345.120** | 1,10 ms | 0 |
+| `-t4 -c200 -d30s` | **312.288** | 609 µs | 0 |
+| `-t2 -c100 -d30s` | **246.254** | 366 µs | 0 |
 
 Meta de ≥ 50.000 req/s **superada** en los tres escenarios, sin errores.
 
 Condiciones de la medida, porque un req/s sin contexto no significa nada:
 
-- Son las cifras de la **ejecución más conservadora** de dos. Entre repeticiones
-  hay un 15–20 % de varianza —es una máquina virtual—, y otra ejecución dio
-  401.029 / 313.045 / 252.489. Se publica la baja: quedarse con la mejor sin
-  decirlo no sería una medición, sería una selección.
+- Son las cifras de la **ejecución más conservadora** de dos, con **todos los
+  módulos activos** (registro asíncrono y sondas de salud incluidos). La otra
+  ejecución dio 382.786 / 346.581 / 253.741: alrededor de un 10 % de varianza
+  entre repeticiones, que es lo normal en una máquina virtual. Se publica la
+  baja; quedarse con la mejor sin decirlo no sería una medición, sería una
+  selección.
+- Los dos hilos que añaden `log` y `health` **no tienen coste medible**: las
+  cifras con ellos activos quedan dentro de la varianza de las medidas sin
+  ellos.
 
 - `wrk`, proxy y los 3 backends comparten máquina, como en el escenario de
   referencia. Todo el tráfico es *loopback*.
