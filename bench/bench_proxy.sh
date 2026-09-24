@@ -21,13 +21,17 @@ set -u
 
 BUILD_DIR="build-rel"
 DURATION="30s"
-PORT=8080
-BACKEND_PORTS="9101 9102 9103"
+# No 8080: lo ocupa medio mundo (Jetty, Tomcat, servidores de desarrollo). Si
+# el puerto está cogido, wrk mide ese otro servicio y el informe sale con
+# cifras que no son del proxy.
+PORT=18080
+BACKEND_PORTS="19101 19102 19103"
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --build-dir) BUILD_DIR="$2"; shift ;;
     --duration)  DURATION="$2";  shift ;;
+    --port)      PORT="$2";      shift ;;
     --quick)     DURATION="5s" ;;
     -h|--help)   sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "opción desconocida: $1" >&2; exit 2 ;;
@@ -110,15 +114,32 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+port_busy() {
+  (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null && { exec 3>&-; return 0; }
+  return 1
+}
+
 wait_for_port() {
   local port=$1 tries=50
   while [ $tries -gt 0 ]; do
-    (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null && { exec 3>&-; return 0; }
+    port_busy "$port" && return 0
     tries=$((tries - 1))
     sleep 0.1
   done
   return 1
 }
+
+# Si algo ya escucha donde vamos a medir, wrk mediría ESO. Comprobarlo antes
+# cuesta un segundo; descubrirlo después cuesta un informe entero de cifras
+# que no son del proxy.
+for p in $PORT $BACKEND_PORTS; do
+  if port_busy "$p"; then
+    echo "El puerto $p ya está ocupado por otro proceso." >&2
+    echo "Libéralo, o elige otro con --port." >&2
+    command -v ss >/dev/null && ss -tlnp 2>/dev/null | grep ":$p " >&2
+    exit 2
+  fi
+done
 
 # --- arranque --------------------------------------------------------------
 
@@ -162,6 +183,15 @@ wait_for_port "$PORT" || {
   exit 2
 }
 
+# Que el puerto responda no prueba que responda el proxy: con SO_REUSEPORT un
+# worker puede haber fallado el bind mientras otro proceso sirve ahí.
+sleep 0.3
+if grep -qi 'address already in use\|bind ' "$TMPD/proxy.log"; then
+  echo "Algún worker no pudo abrir $PORT; lo que haya ahí no es (solo) el proxy:" >&2
+  grep -i 'bind ' "$TMPD/proxy.log" | head -3 >&2
+  exit 2
+fi
+
 # --- ejecución -------------------------------------------------------------
 
 # Imprime "reqs latencia errores" a partir de la salida de wrk.
@@ -172,9 +202,12 @@ parse_wrk() {
   reqs=$(sed -n 's/^Requests\/sec:[ \t]*//p' "$out" | head -1)
   lat=$(awk '/^ *Latency/ {print $2; exit}' "$out")
 
+  # wrk indenta estas dos líneas con espacios. Anclarlas a principio de línea
+  # hacía que los errores no se contaran nunca: el resumen decía "0 errores"
+  # mientras el fichero crudo tenía cientos de miles de respuestas no-2xx.
   socket_errs=$(sed -n 's/.*connect \([0-9]*\), read \([0-9]*\), write \([0-9]*\), timeout \([0-9]*\).*/\1+\2+\3+\4/p' "$out" | head -1)
   [ -n "$socket_errs" ] && errs=$(( socket_errs )) || errs=0
-  non2xx=$(sed -n 's/^Non-2xx or 3xx responses:[ \t]*//p' "$out" | head -1)
+  non2xx=$(sed -n 's/^[[:space:]]*Non-2xx or 3xx responses:[[:space:]]*//p' "$out" | head -1)
   [ -n "$non2xx" ] && errs=$(( errs + non2xx ))
 
   echo "${reqs:-0} ${lat:-?} $errs"
