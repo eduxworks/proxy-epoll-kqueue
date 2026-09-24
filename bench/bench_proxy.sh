@@ -112,7 +112,11 @@ rm -f bench/results/wrk-run*.txt bench/results/proxy.log 2>/dev/null
 
 cleanup() {
   [ -n "$PROXY_PID" ] && kill -TERM "$PROXY_PID" 2>/dev/null
-  for p in $BACKEND_PIDS; do kill -TERM "$p" 2>/dev/null; done
+  # Al grupo, no al PID: bench_backend y el proxy crean hijos con fork, y matar
+  # solo al padre deja workers escuchando que envenenan la siguiente ejecución.
+  for p in $BACKEND_PIDS; do
+    kill -TERM "-$p" 2>/dev/null || kill -TERM "$p" 2>/dev/null
+  done
   wait 2>/dev/null
   rm -rf "$TMPD"
 }
