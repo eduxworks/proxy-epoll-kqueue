@@ -73,13 +73,18 @@ Linux 7.0.0 · Intel Core i7-11800H · 8 vCPU · 7,7 GB · build release · `wrk
 
 | Configuración | Req/s | Latencia media | Errores |
 |---|---|---|---|
-| `-t4 -c400 -d30s` | **401.029** | 0,97 ms | 0 |
-| `-t4 -c200 -d30s` | **313.045** | 616 µs | 0 |
-| `-t2 -c100 -d30s` | **252.489** | 356 µs | 0 |
+| `-t4 -c400 -d30s` | **339.040** | 1,13 ms | 0 |
+| `-t4 -c200 -d30s` | **253.272** | 766 µs | 0 |
+| `-t2 -c100 -d30s` | **211.137** | 442 µs | 0 |
 
 Meta de ≥ 50.000 req/s **superada** en los tres escenarios, sin errores.
 
 Condiciones de la medida, porque un req/s sin contexto no significa nada:
+
+- Son las cifras de la **ejecución más conservadora** de dos. Entre repeticiones
+  hay un 15–20 % de varianza —es una máquina virtual—, y otra ejecución dio
+  401.029 / 313.045 / 252.489. Se publica la baja: quedarse con la mejor sin
+  decirlo no sería una medición, sería una selección.
 
 - `wrk`, proxy y los 3 backends comparten máquina, como en el escenario de
   referencia. Todo el tráfico es *loopback*.
