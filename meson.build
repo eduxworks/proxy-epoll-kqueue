@@ -29,3 +29,4 @@ message('Sistema @0@ -> backend de E/S: @1@'.format(host_os, io_backend))
 
 subdir('src')
 subdir('tests')
+subdir('bench')

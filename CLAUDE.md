@@ -397,8 +397,17 @@ Tres escenarios de `wrk`. Referencia del README (macOS/ARM64, build release):
 | `-t2 -c100 -d30s` | 55.311 | 1,84 ms | 0 |
 
 **Umbral de aprobado: ≥ 50.000 req/s y 0 errores en los tres.** Esas cifras son
-el suelo a no empeorar. El script sube `ulimit -n 65535`, verifica que corre
-contra el build release y avisa si el backend de prueba es el cuello de botella.
+el suelo a no empeorar. El script sube `ulimit -n 65535`, avisa si el build no
+es `release` —medir uno de depuración y publicarlo puede costar la mitad— y
+**mide primero los backends a pelo**: si el proxy se acerca a esa cifra, lo que
+limita es la máquina y no el código, y decirlo evita presentar como resultado
+del proxy lo que es una propiedad del entorno.
+
+El backend del benchmark **no es `echo_server`**: aquel hace `fork` por conexión
+y con `-c400` serían cientos de procesos midiendo el andamiaje en vez del proxy.
+`bench/bench_backend.c` usa el mismo bucle de eventos que el proxy y responde
+algo fijo con `Content-Length` y keep-alive, de modo que el cuello de botella
+quede donde queremos medirlo.
 
 ### 7.1 Cómo se reportan las cifras — referencia vs. propias
 
@@ -457,7 +466,11 @@ Ryzen 5 3400G, 4 núcleos compartidos con Windows) se etiqueta explícitamente c
 │   ├── meson.build
 │   ├── test_http_parser.c  test_router.c  test_backend_pool.c  test_config.c
 │   └── e2e/{run_e2e.sh, echo_server.c, fixtures/*.toml}
-└── bench/bench_proxy.sh
+└── bench/
+    ├── meson.build
+    ├── bench_backend.c      # backend event-driven, para no medirlo a él
+    ├── bench_proxy.sh       # wrk, 3 escenarios + control
+    └── results/             # informes generados (ignorado por git)
 ```
 
 El binario queda en **`build/src/proxy`**, como indica el README.

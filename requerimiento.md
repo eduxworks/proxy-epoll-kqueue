@@ -147,15 +147,25 @@ Comprobación: `meson --version` (≥ 0.60), `gcc --version` (≥ 11, para C11 s
 
 ### 4.2 `wrk` — generador de carga (E2, E20)
 
-No está en los repos de Ubuntu; se compila:
+Ubuntu 24.04 lo trae en *universe* (4.1.0), que sirve de sobra:
 
 ```bash
-sudo apt install -y libssl-dev
+sudo apt install -y wrk
+wrk --version
+```
+
+Si tu distribución no lo tiene, o quieres la 4.2.0, se compila. Ojo a `unzip`:
+el Makefile de wrk descomprime LuaJIT y sin él falla con un `Error 127` que no
+dice de qué se queja.
+
+```bash
+sudo apt install -y build-essential libssl-dev unzip git
 git clone https://github.com/wg/wrk.git ~/tools/wrk
 make -C ~/tools/wrk -j"$(nproc)"
 sudo install ~/tools/wrk/wrk /usr/local/bin/
-wrk --version
 ```
+
+En FreeBSD y macOS: `pkg install wrk` y `brew install wrk`.
 
 ### 4.3 `tomlc99` — parser de configuración (E12)
 
@@ -191,6 +201,12 @@ echo '* hard nofile 65535' | sudo tee -a /etc/security/limits.conf
 ## 5. VPS Linux — para el benchmark evaluable
 
 ### 5.1 Dimensionamiento mínimo
+
+`bench/bench_proxy.sh` **mide primero los backends a pelo** y compara. Esa
+medida de control es lo que distingue «el proxy da 30.000 req/s» de «esta
+máquina da 30.000 req/s»: si las dos cifras se parecen, lo que estás midiendo
+es el hardware, y el script lo dice en vez de dejar que parezca un resultado
+del código.
 
 El benchmark corre `wrk` + el proxy + 3 backends **en la misma máquina**. Para
 sostener ≥ 50.000 req/s con `-t4 -c400`:
@@ -250,15 +266,44 @@ En el benchmark compiten por CPU, a la vez y en la misma máquina:
 | Windows + WSL/VirtualBox | el resto |
 
 Tienes **4 núcleos físicos (8 hilos SMT)**. Los 4 hilos de `wrk` ya se comen la
-mitad de la máquina antes de que el proxy haga nada. Con un Ryzen 5 3400G puedes
-ver cifras de decenas de miles de req/s, pero con **varianza alta entre
-ejecuciones** según lo que haga Windows de fondo — no es una medida defendible.
+mitad de la máquina antes de que el proxy haga nada.
+
+**Medido, no supuesto** (Docker sobre WSL2, build release, 3 backends
+event-driven, 30 s por escenario):
+
+| Escenario | Req/s | Latencia | Timeouts |
+|---|---|---|---|
+| `-t4 -c400` | 103.819 | 4,37 ms | 23 |
+| `-t4 -c200` | 107.686 | 2,33 ms | 56 |
+| `-t2 -c100` | 99.491 | 1,11 ms | 8 |
+| *control: backend sin proxy* | *130.746* | — | *197* |
+
+Esta máquina **dobla el umbral de 50.000**, así que la previsión inicial de que
+no llegaría era errónea. El keep-alive es lo que lo cambia: sin un `connect` por
+petición, el coste por petición baja lo bastante como para que el cuello deje de
+ser la CPU del proxy.
+
+**Para qué sigue haciendo falta el VPS**: no para la cifra de req/s, sino para
+la parte de **«0 errores»** que exige E2. Los errores de arriba son *solo*
+timeouts —`connect 0, read 0, write 0`— y el backend **sin proxy de por medio**
+da 197, más que los tres escenarios del proxy juntos. Es saturación: ~18 hilos
+activos (wrk 4 + proxy 8 + backends 6) sobre 4 núcleos físicos, con `wrk`
+cortando a los 2 s. Con núcleos dedicados desaparecen.
+
+Dos matices más:
+
+- El proxy queda al **82 % del techo del backend**, así que lo medido es el
+  conjunto de la máquina, no el proxy aislado.
+- WSL2 y Docker no distorsionan tanto como cabría temer **para tráfico de
+  loopback**: la CPU es casi nativa y el tráfico nunca sale de la VM, así que la
+  capa de red virtualizada no interviene.
 
 Orden de calidad de la medida, de mejor a peor:
 
-1. **VPS con núcleos dedicados** → la cifra que se entrega.
-2. **WSL2 o Docker Desktop** → mejor aproximación local (CPU casi nativa, sin capa
-   extra de virtualización). Úsalo para detectar regresiones entre commits.
+1. **VPS con núcleos dedicados** → la cifra que se entrega. Sigue siendo
+   preferible por reproducibilidad: nadie más compite por la CPU.
+2. **WSL2 o Docker Desktop** → buena aproximación local, y suficiente para
+   demostrar que se supera el umbral. Úsalo para detectar regresiones.
 3. **VM de VirtualBox** → la peor de las tres (§7.1). No la uses para medir.
 
 **Veredicto sobre tu VM `ubuntu24`**: con **1 vCPU y 2 GB** no sirve ni de
