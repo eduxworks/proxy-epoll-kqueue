@@ -1,155 +1,173 @@
-<mxfile host="Electron" agent="proxy-epoll-kqueue" pages="4">
+<mxfile host="app.diagrams.net" agent="proxy-epoll-kqueue">
   <diagram name="1 · Arquitectura" id="arq-implementada">
-    <mxGraphModel dx="844" dy="513" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="t1" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" value="Proxy inverso L7 — arquitectura implementada" vertex="1">
-          <mxGeometry height="40" width="700" x="40" y="20" as="geometry" />
+
+        <mxCell id="t1" value="Proxy inverso L7 — arquitectura implementada" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="700" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="t2" parent="1" style="text;html=1;fontSize=12;fontColor=#666666;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" value="Un proceso por CPU, sin estado compartido entre ellos. Cada worker: un bucle de eventos + dos hilos auxiliares." vertex="1">
-          <mxGeometry height="24" width="820" x="40" y="52" as="geometry" />
+        <mxCell id="t2" value="Un proceso por CPU, sin estado compartido entre ellos. Cada worker: un bucle de eventos + dos hilos auxiliares." style="text;html=1;fontSize=12;fontColor=#666666;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="820" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="cli" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="Clientes&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot; color=&quot;#666666&quot;&gt;curl · wrk&lt;/font&gt;" vertex="1">
-          <mxGeometry height="70" width="110" x="40" y="380" as="geometry" />
+
+        <mxCell id="cli" value="Clientes&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot; color=&quot;#666666&quot;&gt;curl · wrk&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="110" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="fgrp" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=11;" value="listener — SO_REUSEPORT" vertex="1">
-          <mxGeometry height="190" width="170" x="190" y="330" as="geometry" />
+
+        <mxCell id="fgrp" value="listener — SO_REUSEPORT" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="190" y="330" width="170" height="190" as="geometry" />
         </mxCell>
-        <mxCell id="f1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="frontend &quot;public&quot;&lt;br&gt;:8080" vertex="1">
-          <mxGeometry height="55" width="140" x="205" y="365" as="geometry" />
+        <mxCell id="f1" value="frontend &quot;public&quot;&lt;br&gt;:80" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="205" y="365" width="140" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="f2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="frontend &quot;internal&quot;&lt;br&gt;:8081" vertex="1">
-          <mxGeometry height="55" width="140" x="205" y="440" as="geometry" />
+        <mxCell id="f2" value="frontend &quot;internal&quot;&lt;br&gt;:8081" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="205" y="440" width="140" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="wgrp" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" value="Worker 0 … N-1   ·   un proceso por CPU" vertex="1">
-          <mxGeometry height="720" width="760" x="400" y="110" as="geometry" />
+
+        <mxCell id="wgrp" value="Worker 0 … N-1   ·   un proceso por CPU" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="110" width="760" height="720" as="geometry" />
         </mxCell>
-        <mxCell id="loop" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="io_event — bucle de eventos&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;epoll (Linux) · kqueue (macOS/BSD)&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot; color=&quot;#b85450&quot;&gt;edge-triggered: drenar hasta EAGAIN&lt;/font&gt;" vertex="1">
-          <mxGeometry height="80" width="300" x="430" y="150" as="geometry" />
+
+        <mxCell id="loop" value="io_event — bucle de eventos&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;epoll (Linux) · kqueue (macOS/BSD)&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot; color=&quot;#b85450&quot;&gt;edge-triggered: drenar hasta EAGAIN&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="430" y="150" width="300" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="conn" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="connection — máquina de estados&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;relay bidireccional · keep-alive&lt;br&gt;contrapresión: si el buffer llena, deja de leer&lt;/font&gt;" vertex="1">
-          <mxGeometry height="90" width="300" x="430" y="270" as="geometry" />
+
+        <mxCell id="conn" value="connection — máquina de estados&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;relay bidireccional · keep-alive&lt;br&gt;contrapresión: si el buffer llena, deja de leer&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="430" y="270" width="300" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="hp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="http_parser&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;Host · X-Forwarded-*&lt;br&gt;delimita cuerpos&lt;/font&gt;" vertex="1">
-          <mxGeometry height="70" width="140" x="430" y="400" as="geometry" />
+
+        <mxCell id="hp" value="http_parser&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;Host · X-Forwarded-*&lt;br&gt;delimita cuerpos&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="430" y="400" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="bp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="buffer_pool&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;arena mmap&lt;br&gt;slots de 16 KB&lt;/font&gt;" vertex="1">
-          <mxGeometry height="70" width="140" x="590" y="400" as="geometry" />
+        <mxCell id="bp" value="buffer_pool&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;arena mmap&lt;br&gt;slots de 16 KB&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="590" y="400" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="slot" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="router_slot — publicación RCU&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;intercambio atómico + refcount&lt;/font&gt;" vertex="1">
-          <mxGeometry height="60" width="340" x="790" y="150" as="geometry" />
+
+        <mxCell id="slot" value="router_slot — publicación RCU&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;intercambio atómico + refcount&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="790" y="150" width="340" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="rt" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="router — una tabla por frontend&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;exacto (djb2) → *.dom → default → 502&lt;/font&gt;" vertex="1">
-          <mxGeometry height="60" width="340" x="790" y="235" as="geometry" />
+        <mxCell id="rt" value="router — una tabla por frontend&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;exacto (djb2) → *.dom → default → 502&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="790" y="235" width="340" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="pool" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="backend_pool × N&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;round_robin · weighted · least_conn&lt;br&gt;salud pasiva: fall fallos ⇒ DOWN&lt;/font&gt;" vertex="1">
-          <mxGeometry height="75" width="340" x="790" y="320" as="geometry" />
+        <mxCell id="pool" value="backend_pool × N&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;round_robin · weighted · least_conn&lt;br&gt;salud pasiva: fall fallos ⇒ DOWN&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="790" y="320" width="340" height="75" as="geometry" />
         </mxCell>
-        <mxCell id="thr" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9673a6;verticalAlign=top;fontSize=10;fontColor=#9673a6;" value="Hilos auxiliares del worker" vertex="1">
-          <mxGeometry height="120" width="340" x="790" y="430" as="geometry" />
+
+        <mxCell id="thr" value="Hilos auxiliares del worker" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9673a6;verticalAlign=top;fontSize=10;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="430" width="340" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="lg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="hilo log&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;anillo 4096×512 B&lt;br&gt;lleno ⇒ descarta y cuenta&lt;/font&gt;" vertex="1">
-          <mxGeometry height="75" width="150" x="805" y="460" as="geometry" />
+        <mxCell id="lg" value="hilo log&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;anillo 4096×512 B&lt;br&gt;lleno ⇒ descarta y cuenta&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="805" y="460" width="150" height="75" as="geometry" />
         </mxCell>
-        <mxCell id="he" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="hilo health&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;sondas TCP/HTTP&lt;br&gt;las únicas que readmiten&lt;/font&gt;" vertex="1">
-          <mxGeometry height="75" width="150" x="965" y="460" as="geometry" />
+        <mxCell id="he" value="hilo health&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;sondas TCP/HTTP&lt;br&gt;las únicas que readmiten&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="965" y="460" width="150" height="75" as="geometry" />
         </mxCell>
-        <mxCell id="st" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="stats — socket UNIX (solo worker 0)&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;snapshot JSON: uptime, contadores, backends&lt;/font&gt;" vertex="1">
-          <mxGeometry height="60" width="300" x="430" y="520" as="geometry" />
+
+        <mxCell id="st" value="stats — socket UNIX (solo worker 0)&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;snapshot JSON: uptime, contadores, backends&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="430" y="520" width="300" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="sig" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="SIGHUP → self-pipe&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;handler: solo write()&lt;br&gt;reload roto ⇒ se conserva la anterior&lt;/font&gt;" vertex="1">
-          <mxGeometry height="75" width="300" x="430" y="620" as="geometry" />
+
+        <mxCell id="sig" value="SIGHUP → self-pipe&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;handler: solo write()&lt;br&gt;reload roto ⇒ se conserva la anterior&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="430" y="620" width="300" height="75" as="geometry" />
         </mxCell>
-        <mxCell id="cfg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="config — proxy.toml&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;tomlc99 · validación estricta&lt;br&gt;errores con ruta TOML&lt;/font&gt;" vertex="1">
-          <mxGeometry height="75" width="300" x="430" y="725" as="geometry" />
+        <mxCell id="cfg" value="config — proxy.toml&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;tomlc99 · validación estricta&lt;br&gt;errores con ruta TOML&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="430" y="725" width="300" height="75" as="geometry" />
         </mxCell>
-        <mxCell id="b1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="backend&lt;br&gt;127.0.0.1:9001" vertex="1">
-          <mxGeometry height="50" width="140" x="1250" y="255" as="geometry" />
+
+        <mxCell id="b1" value="backend&lt;br&gt;127.0.0.1:9001" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="255" width="140" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="b2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="backend&lt;br&gt;127.0.0.1:9002" vertex="1">
-          <mxGeometry height="50" width="140" x="1250" y="325" as="geometry" />
+        <mxCell id="b2" value="backend&lt;br&gt;127.0.0.1:9002" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="325" width="140" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="b3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="backend&lt;br&gt;127.0.0.1:9003" vertex="1">
-          <mxGeometry height="50" width="140" x="1250" y="395" as="geometry" />
+        <mxCell id="b3" value="backend&lt;br&gt;127.0.0.1:9003" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="395" width="140" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="e1" edge="1" parent="1" source="cli" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="fgrp">
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="cli" target="fgrp">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" edge="1" parent="1" source="f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="loop" value="accept4 / accept">
+        <mxCell id="e2" value="accept4 / accept" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="f1" target="loop">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" edge="1" parent="1" source="f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="conn">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="f2" target="conn">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" edge="1" parent="1" source="loop" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="conn" value="eventos">
+        <mxCell id="e4" value="eventos" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="loop" target="conn">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" edge="1" parent="1" source="conn" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="hp">
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="conn" target="hp">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e6" edge="1" parent="1" source="conn" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="bp">
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="conn" target="bp">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e7" edge="1" parent="1" source="conn" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="slot" value="ref por conexión">
+        <mxCell id="e7" value="ref por conexión" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="conn" target="slot">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e8" edge="1" parent="1" source="slot" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="rt">
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="slot" target="rt">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e9" edge="1" parent="1" source="rt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="pool" value="Host ⇒ pool">
+        <mxCell id="e9" value="Host ⇒ pool" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="rt" target="pool">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e10" edge="1" parent="1" source="pool" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="b1">
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="pool" target="b1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e11" edge="1" parent="1" source="pool" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="b2">
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="pool" target="b2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e12" edge="1" parent="1" source="pool" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="b3">
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="pool" target="b3">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e13" edge="1" parent="1" source="he" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;fontSize=10;" target="b3" value="sondas">
+        <mxCell id="e13" value="sondas" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;fontSize=10;" edge="1" parent="1" source="he" target="b3">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e14" edge="1" parent="1" source="sig" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;" target="slot" value="reload valida ⇒ publica">
+        <mxCell id="e14" value="reload valida ⇒ publica" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;" edge="1" parent="1" source="sig" target="slot">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e15" edge="1" parent="1" source="cfg" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" target="sig">
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" edge="1" parent="1" source="cfg" target="sig">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="leg" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#999999;verticalAlign=top;fontSize=11;fontStyle=1" value="Leyenda" vertex="1">
-          <mxGeometry height="200" width="300" x="40" y="600" as="geometry" />
+
+        <mxCell id="leg" value="Leyenda" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#999999;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="300" height="200" as="geometry" />
         </mxCell>
-        <mxCell id="l1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" value="específico de plataforma (#ifdef)" vertex="1">
-          <mxGeometry height="30" width="270" x="55" y="630" as="geometry" />
+        <mxCell id="l1" value="específico de plataforma (#ifdef)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="630" width="270" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="l2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="camino de datos (bucle de eventos)" vertex="1">
-          <mxGeometry height="30" width="270" x="55" y="668" as="geometry" />
+        <mxCell id="l2" value="camino de datos (bucle de eventos)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="668" width="270" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="l3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="enrutado y destinos" vertex="1">
-          <mxGeometry height="30" width="270" x="55" y="706" as="geometry" />
+        <mxCell id="l3" value="enrutado y destinos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="706" width="270" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="l4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="hilos aparte del bucle" vertex="1">
-          <mxGeometry height="30" width="270" x="55" y="744" as="geometry" />
+        <mxCell id="l4" value="hilos aparte del bucle" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="744" width="270" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="note1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=10;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="Solo 3 ficheros tienen #ifdef de plataforma:&lt;br&gt;io_event_epoll.c · io_event_kqueue.c · net_compat.c&lt;br&gt;&lt;br&gt;SO_REUSEPORT no significa lo mismo en los tres SO:&lt;br&gt;Linux reparte · FreeBSD necesita _LB · macOS NO reparte" vertex="1">
-          <mxGeometry height="110" width="330" x="1210" y="500" as="geometry" />
+
+        <mxCell id="note1" value="Solo 3 ficheros tienen #ifdef de plataforma:&lt;br&gt;io_event_epoll.c · io_event_kqueue.c · net_compat.c&lt;br&gt;&lt;br&gt;SO_REUSEPORT no significa lo mismo en los tres SO:&lt;br&gt;Linux reparte · FreeBSD necesita _LB · macOS NO reparte" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=10;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="500" width="330" height="110" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
+
   <diagram name="2 · Estados de conexión" id="estados-conexion">
     <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+
         <mxCell id="s_t" value="Máquina de estados de una conexión" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="600" height="40" as="geometry" />
         </mxCell>
         <mxCell id="s_t2" value="Con keep-alive el ciclo vuelve a empezar sin cerrar nada: es lo que evita un handshake por petición." style="text;html=1;fontSize=12;fontColor=#666666;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="40" y="52" width="900" height="24" as="geometry" />
         </mxCell>
+
         <mxCell id="s0" value="ACCEPTED" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="60" y="230" width="120" height="60" as="geometry" />
         </mxCell>
@@ -165,12 +183,15 @@
         <mxCell id="s4" value="CLOSING" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="1010" y="230" width="140" height="60" as="geometry" />
         </mxCell>
+
         <mxCell id="err" value="Respuesta de error y cierre&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;400 sin Host o mal formada · 431 cabeceras enormes&lt;br&gt;502 sin ruta o sin backend vivo · 503 sin buffers&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="430" y="430" width="380" height="80" as="geometry" />
         </mxCell>
+
         <mxCell id="ka" value="keep-alive: si cliente y respuesta lo permiten,&lt;br&gt;vuelve a READING_REQUEST reutilizando el upstream&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;(solo si el nuevo Host enruta al mismo pool)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="500" y="90" width="420" height="60" as="geometry" />
         </mxCell>
+
         <mxCell id="se0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="s0" target="s1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -195,26 +216,31 @@
         <mxCell id="se7" value="keep-alive" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;strokeColor=#82b366;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s3" target="s1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="inv" value="Dos invariantes que gobiernan cada transición&lt;br&gt;&lt;br&gt;1 · Edge-triggered obliga a drenar. El kernel avisa una vez por transición:&#xa;cada handler lee y escribe hasta EAGAIN. Lo que no se drena no vuelve a avisarse.&lt;br&gt;&lt;br&gt;2 · Contrapresión en vez de buffers que crecen. Si el buffer de salida se llena,&#xa;se deja de leer del otro extremo. Un upstream lento no se traduce en memoria." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+
+        <mxCell id="inv" value="Dos invariantes que gobiernan cada transición&lt;br&gt;&lt;br&gt;1 · Edge-triggered obliga a drenar. El kernel avisa una vez por transición:&#10;cada handler lee y escribe hasta EAGAIN. Lo que no se drena no vuelve a avisarse.&lt;br&gt;&lt;br&gt;2 · Contrapresión en vez de buffers que crecen. Si el buffer de salida se llena,&#10;se deja de leer del otro extremo. Un upstream lento no se traduce en memoria." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="60" y="600" width="750" height="150" as="geometry" />
         </mxCell>
-        <mxCell id="fram" value="Delimitar el cuerpo es lo que permite reutilizar&lt;br&gt;&lt;br&gt;Content-Length ⇒ tras N bytes&lt;br&gt;chunked ⇒ chunk 0 + tráiler&lt;br&gt;1xx / 204 / 304 / HEAD ⇒ sin cuerpo&lt;br&gt;sin delimitador ⇒ acaba al cerrar: NO reutilizable&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#b85450&quot;&gt;Contar mal aquí sirve media respuesta&#xa;como si fuera la siguiente.&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;fontSize=11;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+
+        <mxCell id="fram" value="Delimitar el cuerpo es lo que permite reutilizar&lt;br&gt;&lt;br&gt;Content-Length ⇒ tras N bytes&lt;br&gt;chunked ⇒ chunk 0 + tráiler&lt;br&gt;1xx / 204 / 304 / HEAD ⇒ sin cuerpo&lt;br&gt;sin delimitador ⇒ acaba al cerrar: NO reutilizable&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#b85450&quot;&gt;Contar mal aquí sirve media respuesta&#10;como si fuera la siguiente.&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;fontSize=11;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="850" y="600" width="400" height="150" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
+
   <diagram name="3 · Recarga en caliente" id="recarga-rcu">
     <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+
         <mxCell id="r_t" value="Recarga en caliente — SIGHUP sin cortar conexiones" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="700" height="40" as="geometry" />
         </mxCell>
         <mxCell id="r_t2" value="La configuración publicada es inmutable: recargar es construir otra y sustituir el puntero, nunca mutar la que está en uso." style="text;html=1;fontSize=12;fontColor=#666666;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="40" y="52" width="1000" height="24" as="geometry" />
         </mxCell>
+
         <mxCell id="p1" value="1 · SIGHUP&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;el handler solo hace write()&lt;br&gt;de 1 byte al self-pipe&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="60" y="160" width="190" height="80" as="geometry" />
         </mxCell>
@@ -230,9 +256,11 @@
         <mxCell id="p5" value="5 · Intercambio atómico&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;+ aviso al hilo de sondas&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="1020" y="160" width="190" height="80" as="geometry" />
         </mxCell>
+
         <mxCell id="fail" value="Si algo falla: se conserva la configuración anterior&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;TOML inválido · backend inexistente · cambio de puertos o de número de frontends&lt;br&gt;Un reload roto no puede degradar el servicio.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="400" y="320" width="520" height="70" as="geometry" />
         </mxCell>
+
         <mxCell id="old" value="Router VIEJO&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;refcount &gt; 0: lo sostienen&lt;br&gt;las conexiones en vuelo&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="330" y="500" width="220" height="80" as="geometry" />
         </mxCell>
@@ -242,9 +270,11 @@
         <mxCell id="slot2" value="router_slot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
           <mxGeometry x="580" y="510" width="160" height="60" as="geometry" />
         </mxCell>
+
         <mxCell id="free" value="Se libera cuando su refcount llega a 0:&lt;br&gt;la última conexión que termina es la que lo borra" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=11;fontColor=#666666;align=center;" vertex="1" parent="1">
           <mxGeometry x="240" y="600" width="400" height="40" as="geometry" />
         </mxCell>
+
         <mxCell id="re1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="p1" target="p2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -269,7 +299,8 @@
         <mxCell id="re8" value="apunta" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="slot2" target="new">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="key" value="Por qué esto no corta tráfico&lt;br&gt;&lt;br&gt;Cada conexión toma una referencia al router al nacer y la suelta al cerrar,&#xa;así que termina con la configuración con la que empezó. Los pools viven&#xa;dentro del router: el mismo refcount que protege la tabla de rutas protege&#xa;el estado de salud al que apunta.&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#b85450&quot;&gt;Comprobado en el e2e: con wrk en marcha, kill -HUP no produce ni un error.&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+
+        <mxCell id="key" value="Por qué esto no corta tráfico&lt;br&gt;&lt;br&gt;Cada conexión toma una referencia al router al nacer y la suelta al cerrar,&#10;así que termina con la configuración con la que empezó. Los pools viven&#10;dentro del router: el mismo refcount que protege la tabla de rutas protege&#10;el estado de salud al que apunta.&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#b85450&quot;&gt;Comprobado en el e2e: con wrk en marcha, kill -HUP no produce ni un error.&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="60" y="680" width="900" height="150" as="geometry" />
         </mxCell>
       </root>

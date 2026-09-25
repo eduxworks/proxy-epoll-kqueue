@@ -37,7 +37,7 @@ contratos** y **cómo se valida**.
 | E16 | **Arena `mmap`** de slots de **16 KB** con freelist | `buffer_pool` | Sin `malloc` en el camino caliente; slots devueltos en toda ruta de error |
 | E17 | **Stats JSON** sobre socket UNIX (uptime, contadores, backends) | `stats` | Snapshot válido según `jq`, servido sin bloquear el loop |
 | E18 | Build con **Meson** | `meson.build` | `meson setup build && meson compile -C build` |
-| E19 | **22 tests cmocka en 4 suites** | `tests/` | 22 casos en 4 binarios; `meson test -C build` reporta 4/4 targets en verde (reparto en §6.1) |
+| E19 | **22 tests cmocka en 4 suites** | `tests/` | Los 22 casos declarados, en sus 4 binarios (reparto en §6.1). Hay 7 suites más fuera de esa cuenta, así que `meson test` reporta **11 targets y 54 casos**, todos en verde |
 | E20 | Benchmark con **wrk** | `bench/bench_proxy.sh` | Los tres escenarios de §7 |
 
 ### 1.2 Requisitos del enunciado (`prompt.md`) — subconjunto cubierto
@@ -75,6 +75,13 @@ explícita; si se implementara, no puede poner en riesgo E1–E20:
 
 ## 2. Arquitectura
 
+> **Diagramas**: [`epoll_queue.drawio`](epoll_queue.drawio) desarrolla en imagen
+> lo que este documento fija en texto. Cuatro páginas:
+> **0 · Boceto inicial** (el punto de partida, conservado a propósito),
+> **1 · Arquitectura** (esta sección), **2 · Estados de conexión** (§3) y
+> **3 · Recarga en caliente** (§5). Si el diagrama y este documento discrepan,
+> manda el documento y el diagrama se corrige.
+
 Desarrollo del diagrama del README:
 
 ```
@@ -99,8 +106,13 @@ Client ──► [Frontend socket :80/:443] ──► parse HTTP Host header ─
 2. **Portabilidad por abstracción.** `io_event.h` define la API;
    `io_event_epoll.c` y `io_event_kqueue.c` la implementan; Meson detecta la
    plataforma. Las diferencias de *sockets* (§2.2) no caben ahí, porque no son
-   del bucle de eventos: viven en **`net_compat.c`**. Esos tres ficheros son los
-   únicos con `#ifdef` de plataforma; ningún otro sabe en qué SO corre.
+   del bucle de eventos: viven en **`net_compat.c`**.
+
+   La selección ocurre **en el build, no en el preprocesador**: Meson compila un
+   backend u otro, así que `io_event_epoll.c` e `io_event_kqueue.c` **no tienen
+   ni un `#ifdef`**. El único fichero con condicionales de plataforma es
+   `net_compat.c`, donde no hay alternativa porque las tres variantes conviven
+   en la misma función. Ningún otro fichero sabe en qué SO corre.
 3. **Reload sin downtime.** La config publicada es inmutable: recargar es
    construir un objeto nuevo y sustituir el puntero (§5), nunca mutar el que
    está en uso.
@@ -154,6 +166,8 @@ compilar limpio con ambos (E1).
 ---
 
 ## 3. Máquina de estados de una conexión
+
+> Página **2 · Estados de conexión** de [`epoll_queue.drawio`](epoll_queue.drawio).
 
 ```
 ACCEPTED ─► READING_REQUEST ─► RESOLVING ─► CONNECTING ─► PROXYING ─┬─► CLOSING
@@ -288,6 +302,8 @@ usan puertos altos (`8080`/`8081`) para correr sin privilegios.
 ---
 
 ## 5. Recarga en caliente (E13)
+
+> Página **3 · Recarga en caliente** de [`epoll_queue.drawio`](epoll_queue.drawio).
 
 Secuencia exigida — **ninguna variante que cierre listeners o conexiones**:
 
@@ -451,6 +467,8 @@ Ryzen 5 3400G, 4 núcleos compartidos con Windows) se etiqueta explícitamente c
 ├── meson_options.txt        # -Dwith_tests (los sanitizadores usan -Db_sanitize)
 ├── CLAUDE.md                # este documento
 ├── README.md                # documento de evaluación
+├── epoll_queue.drawio       # diagramas de arquitectura (4 páginas)
+├── resumen.md               # resumen del trabajo, para exponer
 ├── proxy.toml               # config de ejemplo
 ├── .github/workflows/ci.yml # Linux + macOS ARM64 + ASan/UBSan en cada push
 ├── src/
