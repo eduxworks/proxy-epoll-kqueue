@@ -469,6 +469,7 @@ Ryzen 5 3400G, 4 núcleos compartidos con Windows) se etiqueta explícitamente c
 ├── README.md                # documento de evaluación
 ├── epoll_queue.drawio       # diagramas de arquitectura (4 páginas)
 ├── resumen.md               # resumen del trabajo, para exponer
+├── retrospectiva.md         # retrospectiva del proceso
 ├── proxy.toml               # config de ejemplo
 ├── .github/workflows/ci.yml # Linux + macOS ARM64 + ASan/UBSan en cada push
 ├── src/
