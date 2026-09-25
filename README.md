@@ -105,7 +105,11 @@ Condiciones de la medida, porque un req/s sin contexto no significa nada:
 # Build
 meson setup build && meson compile -C build
 
-# Tests (22 tests cmocka, 4 suites)
+# Tests: los 22 casos cmocka de las 4 suites del enunciado
+#   (config 4 · router 6 · http_parser 7 · backend_pool 5)
+#   más 32 en 7 suites propias: io_event, listener, buffer_pool,
+#   http_framing, log, health y stats.
+# meson test reporta 11 targets (un binario por suite), 54 casos en total.
 meson test -C build
 
 # Ejecutar con una config TOML
